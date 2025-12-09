@@ -1,165 +1,187 @@
---==============================================================--
---========================= VERY HUB ============================--
---===================== MULTI-LANGUAGE ==========================--
---================== AUTO ROCK FARM SYSTEM ======================--
---==============================================================--
+--========================================================--
+--                VERY HUB  —  FINAL SYSTEM               --
+--========================================================--
 
--- โหลด config จากภายนอก (ไม่ผ่าน URL)
-getgenv().VeryHubConfig = getgenv().VeryHubConfig or {
-    Language = "TH" -- TH / EN / CN / JP
-}
+-- PRE-LOAD CHECK
+print("Very Hub Load: -1000% (เตรียมโหลด...)")
 
--- MULTI LANGUAGE TABLE
-local Lang = {
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local LocalPlayer = Players.LocalPlayer
+
+--========================
+--   CONFIG / LANGUAGE
+--========================
+
+local cfg = getgenv().VeryHubConfig
+if not cfg then
+    LocalPlayer:Kick("VeryHubConfig ไม่พบใน getgenv()")
+    return
+end
+
+local LANG = cfg.Language or "TH"
+
+local Text = {
     TH = {
-        Title = "Very Hub - ตัวทำลายหิน",
-        Tab = "ตั้งค่า",
-        Toggle_Auto = "ฟาร์มหินอัตโนมัติ",
-        Speed = "ความเร็ว",
-        TargetTitle = "เป้าหมาย",
-        Boulder = "โบลเดอร์",
-        Pebble = "ก้อนกรวด",
-        Rock = "หิน",
-        Running = "เริ่มทำงาน...",
-        Stopped = "หยุดทำงานแล้ว",
-        Next = "ไปก้อนถัดไป",
-        Searching = "กำลังค้นหา..."
+        WrongKey = "คีย์ไม่ถูกต้อง!",
+        NeedKey = "คุณต้องใส่คีย์ก่อนใช้งาน!",
+        NotMap = "คุณไม่ได้อยู่ในแมพที่รองรับ!",
+        Starting = "กำลังเริ่ม Very Hub...",
+        JoinLow = "กำลังย้ายไปเซิร์ฟคนน้อย...",
+        AutoFarm = "ฟาร์มหิน",
     },
     EN = {
-        Title = "Very Hub - Rock Destroyer",
-        Tab = "Settings",
-        Toggle_Auto = "Auto Rock Farm",
-        Speed = "Speed",
-        TargetTitle = "Targets",
-        Boulder = "Boulder",
-        Pebble = "Pebble",
-        Rock = "Rock",
-        Running = "Running...",
-        Stopped = "Stopped.",
-        Next = "Next target...",
-        Searching = "Searching..."
+        WrongKey = "Wrong Key!",
+        NeedKey = "You must input key first!",
+        NotMap = "You are not in supported place!",
+        Starting = "Starting Very Hub...",
+        JoinLow = "Joining low players server...",
+        AutoFarm = "Rock Farm",
     },
     CN = {
-        Title = "Very Hub - 岩石破坏者",
-        Tab = "设置",
-        Toggle_Auto = "自动刷岩石",
-        Speed = "速度",
-        TargetTitle = "目标",
-        Boulder = "巨石",
-        Pebble = "小石子",
-        Rock = "石头",
-        Running = "运行中...",
-        Stopped = "已停止",
-        Next = "下一个目标...",
-        Searching = "搜索中..."
+        WrongKey = "密钥错误！",
+        NeedKey = "需要输入密钥！",
+        NotMap = "地图不支持！",
+        Starting = "启动 Very Hub...",
+        JoinLow = "正在加入低人数服务器...",
+        AutoFarm = "刷石头",
     },
     JP = {
-        Title = "Very Hub - 岩破壊ツール",
-        Tab = "設定",
-        Toggle_Auto = "自動岩ファーム",
-        Speed = "スピード",
-        TargetTitle = "ターゲット",
-        Boulder = "ボルダー",
-        Pebble = "小石",
-        Rock = "岩",
-        Running = "実行中...",
-        Stopped = "停止しました",
-        Next = "次のターゲットへ",
-        Searching = "検索中..."
+        WrongKey = "キーが間違っています！",
+        NeedKey = "キーを入力してください！",
+        NotMap = "対応したマップではありません！",
+        Starting = "Very Hub を起動中...",
+        JoinLow = "人数が少ないサーバーに移動中...",
+        AutoFarm = "岩ファーム",
     }
 }
 
-local L = Lang[getgenv().VeryHubConfig.Language] or Lang["EN"]
+local L = Text[LANG]
 
---==============================================================--
---=========================== PLAYER ============================--
---==============================================================--
+--========================
+--     KEY SYSTEM
+--========================
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
+if cfg.Key ~= "V" then
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "Very Hub",
+        Text = L.WrongKey,
+        Duration = 4
+    })
+    task.wait(1)
+    LocalPlayer:Kick(L.WrongKey)
+    return
+end
 
---==============================================================--
---========================== NOCLIP =============================--
---==============================================================--
+--========================
+--  CHECK MAP ID
+--========================
 
-RunService.Stepped:Connect(function()
-    for _, v in pairs(character:GetDescendants()) do
-        if v:IsA("BasePart") then
-            v.CanCollide = false
+local allowedMap = 76558904092080
+if game.PlaceId ~= allowedMap then
+    LocalPlayer:Kick(L.NotMap)
+    return
+end
+
+print("Very Hub: Loaded -1000% → OK")
+
+--========================
+--     LOAD KAVO UI
+--========================
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("VERY HUB", "DarkTheme")
+
+local MainTab = Window:NewTab("Main")
+local Section = MainTab:NewSection(L.AutoFarm)
+
+local autoFarm = false
+
+--========================
+--     LOW SERVER BUTTON
+--========================
+
+Section:NewButton("ไปเซิร์ฟ < 5", "Teleport to low player server", function()
+    print(L.JoinLow)
+
+    local Servers = {}
+    local req = game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
+    local data = HttpService:JSONDecode(req)
+
+    for _, v in pairs(data.data) do
+        if v.playing < 5 then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, v.id)
+            return
         end
     end
 end)
 
---==============================================================--
---========================== VARIABLES ==========================--
---==============================================================--
+--========================
+--   AUTO FARM BUTTON
+--========================
 
-local AutoFarm = false
-local Speed = 10
-local TargetTypes = {
-    Boulder = true,
-    Pebble = false,
-    Rock = false
-}
+Section:NewToggle(L.AutoFarm, "Farm rock in workspace.Rocks", function(v)
+    autoFarm = v
+end)
 
---==============================================================--
---========================== FLY SYSTEM =========================--
---==============================================================--
+--========================
+--  AUTO FARM FUNCTION
+--========================
 
-local function FlyTo(target)
+local RunService = game:GetService("RunService")
+
+-- Noclip
+RunService.Stepped:Connect(function()
+    if autoFarm then
+        if LocalPlayer.Character then
+            for _, p in pairs(LocalPlayer.Character:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    p.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+-- Fly & Farm
+local function FlyTo(pos)
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
     local bv = Instance.new("BodyVelocity")
-    bv.MaxForce = Vector3.new(1e7,1e7,1e7)
+    bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
     bv.Parent = hrp
 
-    while AutoFarm and (hrp.Position - target.Position).Magnitude > 5 do
-        bv.Velocity = (target.Position - hrp.Position).Unit * Speed
+    while autoFarm and (hrp.Position - pos).Magnitude > 6 do
+        bv.Velocity = (pos - hrp.Position).Unit * 18 -- ความเร็วจงใจคงที่
         task.wait()
     end
-
     bv:Destroy()
 end
 
-local function WaitUntilGone(obj)
-    while obj and obj.Parent do
-        if not AutoFarm then return end
+local function WaitGone(obj)
+    while autoFarm and obj and obj.Parent do
         task.wait()
     end
 end
 
---==============================================================--
---======================= AUTO FARM LOGIC =======================--
---==============================================================--
-
+-- LOOP
 task.spawn(function()
     while task.wait() do
-        if AutoFarm then
-            print(L.Searching)
-            local folder = workspace.Rocks:IsFindFirstChild("Island1CaveDeep") 
-                and workspace.Rocks.Island1CaveDeep:GetChildren() 
-                or {}
+        if autoFarm then
+            local Rocks = workspace:FindFirstChild("Rocks")
+            if Rocks then
+                for _, folder in ipairs(Rocks:GetChildren()) do
+                    for _, item in ipairs(folder:GetChildren()) do
+                        if not autoFarm then break end
 
-            for _, obj in ipairs(folder) do
-                if not AutoFarm then break end
-
-                local name = obj.Name:lower()
-
-                if (TargetTypes.Boulder and name=="boulderholder") 
-                or (TargetTypes.Pebble and name=="pebbleholder")
-                or (TargetTypes.Rock and name=="rockholder")
-                or (TargetTypes.Boulder and obj:FindFirstChild("Boulder"))
-                then
-                    local b = obj:FindFirstChild("Boulder") or obj
-                    local hb = b:FindFirstChild("Hitbox")
-
-                    if hb then
-                        print(L.Running)
-                        FlyTo(hb)
-                        WaitUntilGone(b)
-                        print(L.Next)
-                        task.wait(0.2)
+                        local Boulder = item:FindFirstChild("Boulder")
+                        if Boulder and Boulder:FindFirstChild("Hitbox") then
+                            local hit = Boulder.Hitbox
+                            FlyTo(hit.Position)
+                            WaitGone(Boulder)
+                        end
                     end
                 end
             end
@@ -167,40 +189,4 @@ task.spawn(function()
     end
 end)
 
---==============================================================--
---============================== UI =============================--
---==============================================================--
-
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib(L.Title, "DarkTheme")
-local Tab = Window:NewTab(L.Tab)
-local Sec = Tab:NewSection(L.Title)
-
-Sec:NewToggle(L.Toggle_Auto, "Auto farm toggle", function(state)
-    AutoFarm = state
-    if not state then print(L.Stopped) end
-end)
-
-Sec:NewSlider(L.Speed, "Farm Speed", 25, 0, function(v)
-    Speed = v
-end)
-
-Sec:NewLabel(L.TargetTitle)
-
-Sec:NewToggle(L.Boulder, "Target Boulder", function(v)
-    TargetTypes.Boulder = v
-end)
-
-Sec:NewToggle(L.Pebble, "Target Pebble", function(v)
-    TargetTypes.Pebble = v
-end)
-
-Sec:NewToggle(L.Rock, "Target Rock", function(v)
-    TargetTypes.Rock = v
-end)
-
--- ไม่มีปุ่มปิด UI ตามคำขอ
-
---==============================================================--
---========================= END SCRIPT ==========================--
---==============================================================--
+print(L.Starting)
