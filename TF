@@ -1,0 +1,143 @@
+local lang = (getgenv().VeryHubConfig and getgenv().VeryHubConfig.Language) or "EN"
+
+local L = {
+    TH = {
+        Title = "Very Hub",
+        TabFarm = "ฟาร์มหิน",
+        AutoFarm = "ออโต้ฟาร์มหิน",
+        Speed = "ความเร็ว",
+        Target = "เป้าหมาย",
+        Boulder = "โบลเดอร์",
+        Pebble = "ก้อนเล็ก",
+        Rock = "หิน",
+        ToggleUI = "ซ่อน/เปิด UI",
+    },
+    EN = {
+        Title = "Very Hub",
+        TabFarm = "Rock Farm",
+        AutoFarm = "Auto Rock Farm",
+        Speed = "Speed",
+        Target = "Target",
+        Boulder = "Boulder",
+        Pebble = "Pebble",
+        Rock = "Rock",
+        ToggleUI = "Toggle UI",
+    },
+    CN = {
+        Title = "Very Hub",
+        TabFarm = "石头挂机",
+        AutoFarm = "自动刷石头",
+        Speed = "速度",
+        Target = "目标",
+        Boulder = "巨石",
+        Pebble = "小石子",
+        Rock = "石头",
+        ToggleUI = "切换界面",
+    },
+    JP = {
+        Title = "Very Hub",
+        TabFarm = "岩ファーム",
+        AutoFarm = "自動岩ファーム",
+        Speed = "スピード",
+        Target = "ターゲット",
+        Boulder = "ボルダー",
+        Pebble = "小石",
+        Rock = "岩",
+        ToggleUI = "UI 切り替え",
+    }
+}
+
+local T = L[lang] or L["EN"]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+local AutoFarm = false
+local Speed = 20
+local Targets = {
+    Boulder = true,
+    Pebble = false,
+    Rock = false
+}
+
+RunService.Stepped:Connect(function()
+    if char then
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
+            end
+        end
+    end
+end)
+
+local function MoveTo(target)
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e7, 1e7, 1e7)
+    bv.Parent = hrp
+
+    while AutoFarm and (hrp.Position - target.Position).Magnitude > 5 do
+        bv.Velocity = (target.Position - hrp.Position).Unit * Speed
+        task.wait(0.05)
+    end
+
+    bv:Destroy()
+end
+
+local function WaitGone(inst)
+    while AutoFarm and inst and inst.Parent do
+        task.wait(0.1)
+    end
+end
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib(T.Title, "DarkTheme")
+
+local Tab = Window:NewTab(T.TabFarm)
+local Section = Tab:NewSection(T.TabFarm)
+
+Section:NewToggle(T.AutoFarm, "Toggle", function(v)
+    AutoFarm = v
+end)
+
+Section:NewSlider(T.Speed, "Set Speed", 100, 1, function(v)
+    Speed = v
+end)
+
+Section:NewLabel(T.Target)
+Section:NewToggle(T.Boulder, "", function(v) Targets.Boulder = v end)
+Section:NewToggle(T.Pebble, "", function(v) Targets.Pebble = v end)
+Section:NewToggle(T.Rock, "", function(v) Targets.Rock = v end)
+
+Section:NewButton(T.ToggleUI, "", function()
+    Library:ToggleUI()
+end)
+
+task.spawn(function()
+    while task.wait() do
+        if not AutoFarm then continue end
+
+        local folder = workspace.Rocks:IsA("Folder") and workspace.Rocks or nil
+        if not folder then continue end
+
+        local cave = folder:FindFirstChild("Island1CaveDeep")
+        if not cave then continue end
+
+        for _, obj in ipairs(cave:GetChildren()) do
+            if not AutoFarm then break end
+
+            if Targets[obj.Name] == true then
+                local b = obj:FindFirstChild("Boulder") or obj:FindFirstChild("Pebble") or obj:FindFirstChild("Rock")
+                if b then
+                    local hit = b:FindFirstChild("Hitbox") or b:FindFirstChildWhichIsA("BasePart")
+                    if hit then
+                        MoveTo(hit)
+                        WaitGone(b)
+                    end
+                end
+            end
+        end
+    end
+end)
