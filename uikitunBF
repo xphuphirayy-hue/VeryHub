@@ -55,7 +55,7 @@ task.spawn(function()
 end)
 
 -- % โหลด
-local loadTime = math.random(7,15)
+local loadTime = math.random(5,8)
 local start = tick()
 
 while tick() - start < loadTime do
