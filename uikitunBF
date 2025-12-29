@@ -1,28 +1,151 @@
+--==================================================
+-- VERY HUB : LOADING + AUTO EXECUTOR + SERVER HOP
+--==================================================
+
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+
+--================= LOADING UI =====================
+local LoadGui = Instance.new("ScreenGui", game.CoreGui)
+LoadGui.IgnoreGuiInset = true
+LoadGui.ResetOnSpawn = false
+
+local Frame = Instance.new("Frame", LoadGui)
+Frame.Size = UDim2.new(0, 520, 0, 200)
+Frame.Position = UDim2.new(0.5,-260,0.5,-100)
+Frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
+Frame.BorderSizePixel = 0
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,14)
+
+local Stroke = Instance.new("UIStroke", Frame)
+Stroke.Color = Color3.fromRGB(0,255,0)
+Stroke.Thickness = 2
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1,0,0,80)
+Title.Position = UDim2.new(0,0,0.15,0)
+Title.BackgroundTransparency = 1
+Title.Text = ""
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 38
+Title.TextColor3 = Color3.fromRGB(0,255,0)
+
+local Percent = Instance.new("TextLabel", Frame)
+Percent.Size = UDim2.new(1,0,0,40)
+Percent.Position = UDim2.new(0,0,0.65,0)
+Percent.BackgroundTransparency = 1
+Percent.Text = "0%"
+Percent.Font = Enum.Font.Gotham
+Percent.TextSize = 22
+Percent.TextColor3 = Color3.fromRGB(220,220,220)
+
+-- พิมพ์ Very Hub ทีละตัว
+task.spawn(function()
+    local txt = "Very Hub"
+    for i = 1, #txt do
+        Title.Text = txt:sub(1,i)
+        task.wait(0.15)
+    end
+end)
+
+-- % โหลด
+local loadTime = math.random(7,15)
+local start = tick()
+
+while tick() - start < loadTime do
+    local p = math.floor(((tick()-start)/loadTime)*100)
+    Percent.Text = p .. "%"
+    Stroke.Transparency = 0.2 + math.sin(tick()*6)*0.3
+    RunService.RenderStepped:Wait()
+end
+
+Percent.Text = "100%"
+task.wait(0.4)
+LoadGui:Destroy()
+
+--================ AUTO EXECUTOR ===================
+-- ตรวจว่าเป็น Blox Fruits
+local BLOX_FRUITS_PLACE = {
+    [2753915549] = true,
+    [4442272183] = true,
+    [7449423635] = true
+}
+
+if not BLOX_FRUITS_PLACE[game.PlaceId] then
+    warn("Very Hub : ไม่ใช่แมพ Blox Fruits")
+    return
+end
+
+--================ SERVER HOP ======================
+local function Notify(msg)
+    game.StarterGui:SetCore("SendNotification",{
+        Title = "Very Hub",
+        Text = msg,
+        Duration = 4
+    })
+end
+
+local function HopLowServer(maxPlayers)
+    Notify("กำลังหาเซิร์ฟคนน้อย...")
+    local placeId = game.PlaceId
+    local servers = HttpService:JSONDecode(
+        game:HttpGet(
+            "https://games.roblox.com/v1/games/"..placeId.."/servers/Public?sortOrder=Asc&limit=100"
+        )
+    )
+
+    for _,v in pairs(servers.data) do
+        if v.playing < maxPlayers then
+            Notify("เจอเซิร์ฟ "..v.playing.." คน กำลังวาป")
+            TeleportService:TeleportToPlaceInstance(placeId, v.id, Player)
+            return
+        end
+    end
+
+    Notify("ไม่เจอเซิร์ฟคนน้อย")
+end
+
+-- กด G หาเซิร์ฟ < 3 คน
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.G then
+        HopLowServer(3)
+    end
+end)
+
+--================= ต่อ UI คุณ =====================
+-- ===== Services =====
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Data = LocalPlayer:WaitForChild("Data")
-local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local TeleportService = game:GetService("TeleportService")
+local CoreGui = game:GetService("CoreGui")
 
--- สีพื้นหลัง
+-- ===== Colors =====
 local defaultColor = Color3.fromRGB(75,0,130)
 local levelUpColor = Color3.fromRGB(255,0,0)
 
--- UI หลัก
+-- ===== Main UI =====
 local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = game:GetService("CoreGui")
 screenGui.Name = "MainUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGui
 
 local background = Instance.new("Frame")
 background.Size = UDim2.new(1,0,1,0)
-background.Position = UDim2.new(0,0,0,0)
 background.BackgroundColor3 = defaultColor
 background.BackgroundTransparency = 0.6
 background.BorderSizePixel = 0
 background.Parent = screenGui
 
--- ปุ่มปิด UI
+-- Close Button
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0.08,0,0.05,0)
 closeButton.Position = UDim2.new(0.9,0,0.02,0)
@@ -33,13 +156,14 @@ closeButton.TextScaled = true
 closeButton.Text = "ปิด UI"
 closeButton.Parent = background
 closeButton.MouseButton1Click:Connect(function()
-    background.Visible = not background.Visible
+	background.Visible = not background.Visible
 end)
 
--- Stats UI แยกออกเพื่อมองเห็นตลอด
+-- ===== Stats GUI =====
 local statsGui = Instance.new("ScreenGui")
-statsGui.Parent = game:GetService("CoreGui")
 statsGui.Name = "StatsUI"
+statsGui.ResetOnSpawn = false
+statsGui.Parent = CoreGui
 
 local infoFrame = Instance.new("Frame")
 infoFrame.Size = UDim2.new(0.9,0,0.2,0)
@@ -48,84 +172,94 @@ infoFrame.BackgroundTransparency = 1
 infoFrame.Parent = statsGui
 
 local function createInfoLabel(name,pos)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0.22,0,1,0)
-    frame.Position = pos
-    frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    frame.BackgroundTransparency = 0.4
-    frame.BorderSizePixel = 0
-    frame.ClipsDescendants = true
-    frame.Parent = infoFrame
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0.22,0,1,0)
+	frame.Position = pos
+	frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	frame.BackgroundTransparency = 0.4
+	frame.BorderSizePixel = 0
+	frame.Parent = infoFrame
 
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0,12)
-    corner.Parent = frame
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0,12)
+	corner.Parent = frame
 
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1,0,1,0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.ArialBold
-    label.TextScaled = true
-    label.Text = name..": 0"
-    label.Parent = frame
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1,0,1,0)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.new(1,1,1)
+	label.Font = Enum.Font.ArialBold
+	label.TextScaled = true
+	label.Text = name..": 0"
+	label.Parent = frame
 
-    return frame,label
+	return label
 end
 
-local levelFrame, levelLabel = createInfoLabel("เลเวล",UDim2.new(0,0,0,0))
-local expFrame, expLabel = createInfoLabel("EXP",UDim2.new(0.26,0,0,0))
-local beliFrame, beliLabel = createInfoLabel("เงินเขียว",UDim2.new(0.52,0,0,0))
-local fragFrame, fragLabel = createInfoLabel("เงินม่วง",UDim2.new(0.78,0,0,0))
+local levelLabel = createInfoLabel("เลเวล",UDim2.new(0,0,0,0))
+local expLabel   = createInfoLabel("EXP",UDim2.new(0.26,0,0,0))
+local beliLabel  = createInfoLabel("เงินเขียว",UDim2.new(0.52,0,0,0))
+local fragLabel  = createInfoLabel("เงินม่วง",UDim2.new(0.78,0,0,0))
 
--- อัปเดต Stats
+-- ===== Update Stats =====
 local function updateStats()
-    levelLabel.Text = "เลเวล: "..Data.Level.Value
-    expLabel.Text = "EXP: "..Data.Exp.Value
-    beliLabel.Text = "เงินเขียว: "..Data.Beli.Value
-    fragLabel.Text = "เงินม่วง: "..Data.Fragments.Value
+	levelLabel.Text = "เลเวล: "..Data.Level.Value
+	expLabel.Text   = "EXP: "..Data.Exp.Value
+	beliLabel.Text  = "เงินเขียว: "..Data.Beli.Value
+	fragLabel.Text  = "เงินม่วง: "..Data.Fragments.Value
 end
 
+Data.Level.Changed:Connect(updateStats)
 Data.Exp.Changed:Connect(updateStats)
 Data.Beli.Changed:Connect(updateStats)
 Data.Fragments.Changed:Connect(updateStats)
-Data.Level.Changed:Connect(updateStats)
 updateStats()
 
--- LevelUp Effect
-local function onLevelUp()
-    background.BackgroundColor3 = levelUpColor
-    task.delay(2,function()
-        background.BackgroundColor3 = defaultColor
-    end)
-end
-Data.Level.Changed:Connect(onLevelUp)
+-- ===== Level Up Effect =====
+Data.Level.Changed:Connect(function()
+	background.BackgroundColor3 = levelUpColor
+	task.delay(2,function()
+		background.BackgroundColor3 = defaultColor
+	end)
+end)
 
--- Performance Mode Black Screen
+-- ===== Performance Mode =====
 local perfGui = Instance.new("ScreenGui")
-perfGui.Parent = game:GetService("CoreGui")
 perfGui.Name = "PerfModeGUI"
 perfGui.ResetOnSpawn = false
+perfGui.Parent = CoreGui
 
 local blackScreen = Instance.new("Frame")
 blackScreen.Size = UDim2.new(1,0,1,0)
-blackScreen.Position = UDim2.new(0,0,0,0)
 blackScreen.BackgroundColor3 = Color3.new(0,0,0)
 blackScreen.BackgroundTransparency = 0.8
 blackScreen.Visible = false
 blackScreen.Parent = perfGui
 
--- Stats อยู่บน Black Screen
+-- ย้าย Stats มาอยู่บน Perf GUI
 infoFrame.Parent = perfGui
-infoFrame.ZIndex = 1
+infoFrame.ZIndex = 10
 
--- คีย์บอร์ดควบคุม F2 = ลด FPS, F3 = รีจอย
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.F2 then
-        blackScreen.Visible = not blackScreen.Visible
-    elseif input.KeyCode == Enum.KeyCode.F3 then
-        -- รีจอยเกม
-        TeleportService:Teleport(game.PlaceId, LocalPlayer)
-    end
+-- ===== UI Toggle System =====
+local uiEnabled = true
+local function setUI(state)
+	screenGui.Enabled = state
+	statsGui.Enabled = state
+	perfGui.Enabled = state
+end
+
+-- ===== Keybinds =====
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+
+	if input.KeyCode == Enum.KeyCode.L then
+		uiEnabled = not uiEnabled
+		setUI(uiEnabled)
+
+	elseif input.KeyCode == Enum.KeyCode.F2 then
+		blackScreen.Visible = not blackScreen.Visible
+
+	elseif input.KeyCode == Enum.KeyCode.F3 then
+		TeleportService:Teleport(game.PlaceId, LocalPlayer)
+	end
 end)
