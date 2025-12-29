@@ -1,0 +1,43 @@
+repeat
+	task.wait(0.1)
+until game:IsLoaded() and game:GetService('Players').LocalPlayer
+
+local _ENV = (getgenv or getrenv or getfenv)()
+local __index = {
+	[2753915549]      = 'VeryHub',
+	[85211729168715]  = 'VeryHub',
+
+	[4442272183]      = 'VeryHub',
+	[79091703265657]  = 'VeryHub',
+
+	[7449423635]      = 'VeryHub',
+	[100117331123089] = 'VeryHub',
+
+	[73902483975735]  = 'VeryHub'
+}
+
+do
+	if not __index[game.PlaceId] then
+		return 
+	end
+end
+
+do
+	if _ENV.Debounce then
+		return nil
+	end
+
+	_ENV.Debounce = true
+end
+
+local function fetch(owner, repo, file)
+	local url = string.format(
+		"https://raw.githubusercontent.com/xphuphirayy-hue/%s/refs/heads/main/mm",
+		owner
+	)
+
+	local result = game:HttpGet(url)
+	return loadstring(game:HttpGet(url))
+end
+
+return fetch(__index[game.PlaceId])()
