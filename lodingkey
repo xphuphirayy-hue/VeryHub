@@ -1,0 +1,116 @@
+--// Very Hub Loader | Green UI | Draggable | WebKey
+
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local Player = Players.LocalPlayer
+
+local function Notify(text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "Very Hub",
+            Text = text,
+            Duration = 2
+        })
+    end)
+end
+
+-- ===== URLs =====
+local LOOTLET_URL = "https://lootdest.org/s?57r6GCd9"
+local KEY_URL = "https://raw.githubusercontent.com/xphuphirayy-hue/key/refs/heads/main/key/i/need/money"
+local MAIN_URL = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/1298644219925106803"
+
+-- ===== UI =====
+local gui = Instance.new("ScreenGui")
+gui.Name = "VeryHub_Key"
+gui.ResetOnSpawn = false
+gui.Parent = game.CoreGui
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromScale(0.26, 0.28)
+frame.Position = UDim2.fromScale(0.37, 0.34)
+frame.BackgroundColor3 = Color3.fromRGB(16, 32, 16)
+frame.Active = true
+frame.Draggable = true
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
+
+-- ===== Title =====
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.fromScale(1, 0.22)
+title.BackgroundTransparency = 1
+title.Text = "Very Hub"
+title.Font = Enum.Font.GothamBlack
+title.TextScaled = true
+title.TextColor3 = Color3.fromRGB(0, 255, 120)
+
+-- ===== TextBox =====
+local box = Instance.new("TextBox", frame)
+box.Size = UDim2.fromScale(0.85, 0.22)
+box.Position = UDim2.fromScale(0.075, 0.3)
+box.PlaceholderText = "Enter Key"
+box.Text = ""
+box.TextColor3 = Color3.new(1,1,1)
+box.BackgroundColor3 = Color3.fromRGB(30, 55, 30)
+box.ClearTextOnFocus = false
+Instance.new("UICorner", box).CornerRadius = UDim.new(0, 10)
+
+-- ===== Get Key Button =====
+local getKeyBtn = Instance.new("TextButton", frame)
+getKeyBtn.Text = "Get Key | Very Hub"
+getKeyBtn.Size = UDim2.fromScale(0.4, 0.2)
+getKeyBtn.Position = UDim2.fromScale(0.075, 0.62)
+getKeyBtn.BackgroundColor3 = Color3.fromRGB(0, 160, 90)
+getKeyBtn.TextColor3 = Color3.new(1,1,1)
+getKeyBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", getKeyBtn).CornerRadius = UDim.new(0, 10)
+
+-- ===== Check Button =====
+local checkBtn = Instance.new("TextButton", frame)
+checkBtn.Text = "Check"
+checkBtn.Size = UDim2.fromScale(0.4, 0.2)
+checkBtn.Position = UDim2.fromScale(0.525, 0.62)
+checkBtn.BackgroundColor3 = Color3.fromRGB(0, 220, 120)
+checkBtn.TextColor3 = Color3.new(0,0,0)
+checkBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", checkBtn).CornerRadius = UDim.new(0, 10)
+
+-- ===== Actions =====
+getKeyBtn.MouseButton1Click:Connect(function()
+    pcall(function()
+        setclipboard(LOOTLET_URL)
+    end)
+    Notify("คัดลอกลิงก์รับคีย์แล้ว")
+end)
+
+local function Success()
+    gui:Destroy()
+
+    local g = Instance.new("ScreenGui", game.CoreGui)
+    local label = Instance.new("TextLabel", g)
+    label.Size = UDim2.fromScale(1,1)
+    label.BackgroundTransparency = 1
+    label.Text = "Very Hub"
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBlack
+    label.TextColor3 = Color3.fromRGB(0,255,140)
+
+    task.delay(1.2, function()
+        g:Destroy()
+    end)
+end
+
+checkBtn.MouseButton1Click:Connect(function()
+    local data
+    local ok = pcall(function()
+        data = game:HttpGet(KEY_URL)
+    end)
+
+    if ok and data and string.find(data, box.Text, 1, true) then
+        Success()
+        task.wait(0.25)
+        loadstring(game:HttpGet(MAIN_URL))()
+    else
+        Notify("Key ไม่ถูก")
+    end
+end)
