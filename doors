@@ -1,17 +1,44 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
-local Window = Rayfield:CreateWindow({
-    Name = "Very HUB",
-    LoadingTitle = "Loading GoryHub...",
-    LoadingSubtitle = "By ChaseJyOyOIm , mwtdmjg",
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = nil,
-        FileName = "DoorsCheatsV1"
-    }
+function gradient(text, startColor, endColor)
+    local result = ""
+    local length = #text
+
+    for i = 1, length do
+        local t = (i - 1) / math.max(length - 1, 1)
+        local r = math.floor((startColor.R + (endColor.R - startColor.R) * t) * 255)
+        local g = math.floor((startColor.G + (endColor.G - startColor.G) * t) * 255)
+        local b = math.floor((startColor.B + (endColor.B - startColor.B) * t) * 255)
+
+        local char = text:sub(i, i)
+        result = result .. "<font color=\"rgb(" .. r ..", " .. g .. ", " .. b .. ")\">" .. char .. "</font>"
+    end
+
+    return result
+end
+
+local Window = WindUI:CreateWindow({
+    Title = "Very HUB",
+    Icon = "shuriken",
+    Author = "By ChaseJyOyOIm , mwtdmjg",
+    Folder = "DoorsCheatsV1",
+    Size = UDim2.fromOffset(580, 460),
+    Transparent = true,
+    Theme = "Dark",
+    User = {
+        Enabled = false, -- <- or false
+        Callback = function() end, -- <- optional
+        Anonymous = true -- <- or true
+    },
+    SideBarWidth = 200,
+    HasOutline = true,
 })
 
-local MainTab = Window:CreateTab("Main cheats", 4483362458)
+local Tabs = {
+    MainTab = Window:Tab({ Title = "Main cheats", Icon = "home", Desc = "" }),
+}
+
+Window:SelectTab(1)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -397,10 +424,9 @@ end
 
 spawn(updateESP)
 
-MainTab:CreateToggle({
-    Name = "Fullbright",
-    CurrentValue = false,
-    Flag = "FullbrightV1",
+Tabs.MainTab:Toggle({
+    Title = "Fullbright",
+    Value = false,
     Callback = function(Value)
         if Value then
             fullbrightConn = RunService.Heartbeat:Connect(function()
@@ -421,22 +447,20 @@ MainTab:CreateToggle({
             Lighting.OutdoorAmbient = Color3.new(0.5,0.5,0.5)
             Lighting.Ambient = Color3.new(0.4,0.4,0.5)
         end
-    end,
+    end
 })
 
-MainTab:CreateToggle({
-    Name = "Door ESP",
-    CurrentValue = false,
-    Flag = "ESPDoorsV1",
+Tabs.MainTab:Toggle({
+    Title = "Door ESP",
+    Value = false,
     Callback = function(Value)
         ESPDoors = Value
-    end,
+    end
 })
 
-MainTab:CreateToggle({
-    Name = "Key ESP",
-    CurrentValue = false,
-    Flag = "ESPKeysV1",
+Tabs.MainTab:Toggle({
+    Title = "Key ESP",
+    Value = false,
     Callback = function(Value)
         ESPKeys = Value
         if not Value then
@@ -445,22 +469,20 @@ MainTab:CreateToggle({
             end
             trackedKeys = {}
         end
-    end,
+    end
 })
 
-MainTab:CreateToggle({
-    Name = "Items ESP (sometimes it doesn't work)",
-    CurrentValue = false,
-    Flag = "ESPItemsV1",
+Tabs.MainTab:Toggle({
+    Title = "Items ESP (sometimes it doesn't work)",
+    Value = false,
     Callback = function(Value)
         ESPItems = Value
-    end,
+    end
 })
 
-MainTab:CreateToggle({
-    Name = "Lever ESP",
-    CurrentValue = false,
-    Flag = "ESPLeversV1",
+Tabs.MainTab:Toggle({
+    Title = "Lever ESP",
+    Value = false,
     Callback = function(Value)
         ESPLevers = Value
         if not Value then
@@ -469,13 +491,20 @@ MainTab:CreateToggle({
             end
             trackedLevers = {}
         end
-    end,
+    end
 })
 
-MainTab:CreateToggle({
-    Name = "Closet ESP",
-    CurrentValue = false,
-    Flag = "ESPWardrobesV1",
+Tabs.MainTab:Toggle({
+    Title = "Items ESP (sometimes it doesn't work)",
+    Value = false,
+    Callback = function(Value)
+        ESPItems = Value
+    end
+})
+
+Tabs.MainTab:Toggle({
+    Title = "Closet ESP",
+    Value = false,
     Callback = function(Value)
         ESPWardrobes = Value
         if not Value then
@@ -484,13 +513,12 @@ MainTab:CreateToggle({
             end
             trackedWardrobes = {}
         end
-    end,
+    end
 })
 
-MainTab:CreateToggle({
-    Name = "Book/Fuses ESP",
-    CurrentValue = false,
-    Flag = "ESPBooksV1",
+Tabs.MainTab:Toggle({
+    Title = "Book/Fuses ESP",
+    Value = false,
     Callback = function(Value)
         ESPBooks = Value
         if not Value then
@@ -499,13 +527,12 @@ MainTab:CreateToggle({
             end
             trackedBooks = {}
         end
-    end,
+    end
 })
 
-MainTab:CreateToggle({
-    Name = "Monster ESP",
-    CurrentValue = false,
-    Flag = "ESPMonstersV1",
+Tabs.MainTab:Toggle({
+    Title = "Monster ESP",
+    Value = false,
     Callback = function(Value)
         ESPMonsters = Value
         if not Value then
@@ -518,50 +545,49 @@ MainTab:CreateToggle({
                 trackedFigure100 = nil
             end
         end
-    end,
+    end
 })
 
-MainTab:CreateToggle({
-    Name = "Player ESP",
-    CurrentValue = false,
-    Flag = "ESPPlayersV1",
+Tabs.MainTab:Toggle({
+    Title = "Player ESP",
+    Value = false,
     Callback = function(Value)
         ESPPlayers = Value
-    end,
+    end
 })
 
--- Уведомления о Монстрах
-MainTab:CreateToggle({
-    Name = "Monster notification",
-    CurrentValue = false,
-    Flag = "MonsterNotifyV1",
+Tabs.MainTab:Toggle({
+    Title = "Monster notification",
+    Value = false,
     Callback = function(Value)
         if Value then
             monsterNotifyConn = Workspace.ChildAdded:Connect(function(child)
                 if table.find(monsterNames, child.Name) then
                     playAlertSound()
                     
-                    Rayfield:Notify({
+                    -- ใช้ WindUI Notify
+                    WindUI:Notify({
                         Title = "MONSTER SPAWNED!",
                         Content = "ALERT: " .. child.Name .. " spawned!",
                         Duration = 5,
-                        Image = 4483362458
+                        Icon = "alert" -- ถ้าอยากใส่ไอคอนอื่นก็แก้ตรงนี้
                     })
                 end
             end)
         else
             if monsterNotifyConn then monsterNotifyConn:Disconnect(); monsterNotifyConn = nil end
         end
-    end,
+    end
 })
 
-MainTab:CreateSlider({
-    Name = "FOV Changer",
-    Range = {30, 120},
-    Increment = 1,
-    Suffix = "°",
-    CurrentValue = defaultFOV,
-    Flag = "FOVV1",
+
+Tabs.MainTab:Slider({
+    Title = "FOV Changer",
+    Value = {
+        Min = 30,
+        Max = 120,
+        Default = defaultFOV,
+    },
     Callback = function(Value)
         currentFOV = Value
         if fovConn then fovConn:Disconnect() end
@@ -569,16 +595,16 @@ MainTab:CreateSlider({
         fovConn = RunService.RenderStepped:Connect(function()
             camera.FieldOfView = currentFOV
         end)
-    end,
+    end
 })
 
-MainTab:CreateSlider({
-    Name = "Speed (16-21)",
-    Range = {16, 21},
-    Increment = 1,
-    Suffix = "",
-    CurrentValue = defaultSpeed,
-    Flag = "SpeedV1",
+Tabs.MainTab:Slider({
+    Title = "Speed (16-21)",
+    Value = {
+        Min = 16,
+        Max = 21,
+        Default = defaultSpeed,
+    },
     Callback = function(Value)
         currentSpeed = Value
         if speedConn then speedConn:Disconnect() end
@@ -589,28 +615,28 @@ MainTab:CreateSlider({
                 char.Humanoid.WalkSpeed = seekActive and seekChaseSpeed or currentSpeed
             end
         end)
-    end,
+    end
 })
 
-MainTab:CreateButton({
-    Name = "Reset FOV (default: 70)",
-    Callback = function()
+Tabs.MainTab:Button({
+    Title = "Reset FOV (default: 70)",
+    Callback = function() 
         currentFOV = defaultFOV
         if fovConn then fovConn:Disconnect(); fovConn = nil end
         Workspace.CurrentCamera.FieldOfView = defaultFOV
-    end,
+    end
 })
 
-MainTab:CreateButton({
-    Name = "Reset speed (default: 16)",
-    Callback = function()
+Tabs.MainTab:Button({
+    Title = "Reset speed (default: 16)",
+    Callback = function() 
         currentSpeed = defaultSpeed
         if speedConn then speedConn:Disconnect(); speedConn = nil end
         local char = LocalPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
             char.Humanoid.WalkSpeed = defaultSpeed
         end
-    end,
+    end
 })
 
 LocalPlayer.CharacterAdded:Connect(function()
@@ -624,9 +650,8 @@ LocalPlayer.CharacterAdded:Connect(function()
     end
 end)
 
-Rayfield:Notify({
+WindUI:Notify({
     Title = "Ready to use!",
-    Content = "Have fun with GoryHub!",
+    Content = "Have fun with Very Hub!",
     Duration = 8,
-    Image = 4483362458
 })
