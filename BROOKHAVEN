@@ -53,7 +53,7 @@ task.spawn(function()
     end
 end)
 
-local loadTime = math.random(5,8)
+local loadTime = math.random(3,4)
 local start = tick()
 
 while tick() - start < loadTime do
