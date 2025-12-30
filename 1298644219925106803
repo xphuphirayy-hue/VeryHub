@@ -64,7 +64,7 @@ local MAPS = {
 -- === SCRIPT URLS ===
 local SCRIPTS = {
     BLOX_FRUITS = "",
-    BROOKHAVEN  = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/main/Brookhaven",
+    BROOKHAVEN  = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/BROOKHAVEN",
     PET_SIM_99  = "",
     DOORS       = "",
     MM2         = "",
