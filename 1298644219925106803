@@ -1,1 +1,112 @@
+local placeId = game.PlaceId
+
+-- === MAP GROUPS (MULTI PLACE ID) ===
+local MAPS = {
+
+    ["BLOX_FRUITS"] = {
+        2753915549,   -- Sea 1
+        4442272183,   -- Sea 2
+        7449423635    -- Sea 3
+    },
+
+    ["BROOKHAVEN"] = {
+        4924922222
+    },
+
+    ["PET_SIM_99"] = {
+        8737899170,
+        16498369169  -- Trading / Sub place
+    },
+
+    ["DOORS"] = {
+        6516141723,
+        6839171747   -- Hotel+
+    },
+
+    ["MM2"] = {
+        142823291,
+        335132309    -- Testing / Old
+    },
+
+    ["ARSENAL"] = {
+        286090429,
+        14488378143  -- Competitive
+    },
+
+    ["ADOPT_ME"] = {
+        920587237,
+        11156779721  -- Neighborhood
+    },
+
+    ["BEDWARS"] = {
+        6872265039,
+        8444591321   -- Lobby
+    },
+
+    ["TSB"] = {
+        10449761463
+    },
+
+    ["FISCH"] = {
+        16732694052
+    },
+
+    -- === 99 DAY ===
+    ["99DAY_LOBBY"] = {
+        79546208627805
+    },
+
+    ["99DAY_GAME"] = {
+        126509999114328
+    }
+}
+
+-- === SCRIPT URLS ===
+local SCRIPTS = {
+    BLOX_FRUITS = "",
+    BROOKHAVEN  = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/main/Brookhaven",
+    PET_SIM_99  = "",
+    DOORS       = "",
+    MM2         = "",
+    ARSENAL     = "",
+    ADOPT_ME    = "",
+    BEDWARS     = "",
+    TSB         = "",
+    FISCH       = "",
+    ["99DAY"]   = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/main/99dayProtection"
+}
+
+-- === DETECT FUNCTION ===
+local function isInMap(mapTable)
+    for _, id in ipairs(mapTable) do
+        if placeId == id then
+            return true
+        end
+    end
+    return false
+end
+
+-- === AUTO LOAD ===
+for mapName, ids in pairs(MAPS) do
+    if isInMap(ids) then
+
+        if mapName == "99DAY_LOBBY" then
+            warn("⛔ 99 Day Lobby — ยังไม่รันสคริป")
+            return
+        end
+
+        local scriptKey = mapName:find("99DAY") and "99DAY" or mapName
+        local url = SCRIPTS[scriptKey]
+
+        if url then
+            loadstring(game:HttpGet(url))()
+        else
+            warn("⚠ ไม่มีสคริปสำหรับแมพนี้")
+        end
+
+        return
+    end
+end
+
+warn("❓ แมพนี้ยังไม่รองรับ Very Hub")
 
