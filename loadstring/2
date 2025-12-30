@@ -1,0 +1,64 @@
+-- =======================
+-- VeryHub Loader (Improved)
+-- =======================
+
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local SG = game:GetService("StarterGui")
+
+-- ฟังก์ชันแจ้งเตือน
+local function Notify(msg)
+    pcall(function()
+        SG:SetCore("SendNotification", {
+            Title = "VeryHub Loader",
+            Text = msg,
+            Duration = 5
+        })
+    end)
+end
+
+Notify("เริ่มโหลด VeryHub...")
+
+-- ฟังก์ชันโหลดสคริปต์จาก URL
+local function LoadVeryHubScript(url)
+    Notify("กำลังเชื่อมต่อไปยังเซิร์ฟเวอร์...")
+    local success, response = pcall(function()
+        return game:HttpGet(url)
+    end)
+
+    if not success then
+        Notify("ไม่สามารถโหลดสคริปต์ได้! ตรวจสอบการเชื่อมต่อ")
+        warn("HTTP Request failed:", response)
+        return false
+    end
+
+    if response == nil or response == "" then
+        Notify("สคริปต์ที่โหลดมาเป็นค่าว่าง!")
+        warn("Empty response from URL:", url)
+        return false
+    end
+
+    -- พยายามรันสคริปต์
+    local status, err = pcall(function()
+        local f = loadstring(response)
+        if f then
+            f()
+        else
+            error("loadstring failed")
+        end
+    end)
+
+    if status then
+        Notify("โหลดสคริปต์สำเร็จ!")
+        return true
+    else
+        Notify("เกิดข้อผิดพลาดขณะรันสคริปต์!")
+        warn("Error while executing script:", err)
+        return false
+    end
+end
+
+-- เรียกใช้งาน
+local scriptURL = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/lodingkey"
+LoadVeryHubScript(scriptURL)
