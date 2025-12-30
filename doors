@@ -580,6 +580,95 @@ Tabs.MainTab:Toggle({
     end
 })
 
+local FlyToDoors = false
+
+local function getClosestPart(parts)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+    local hrp = char.HumanoidRootPart
+    local closest = nil
+    local dist = math.huge
+    for _, part in pairs(parts) do
+        if part and part:IsA("BasePart") then
+            local d = (hrp.Position - part.Position).Magnitude
+            if d < dist then
+                dist = d
+                closest = part
+            end
+        end
+    end
+    return closest
+end
+
+local function flyToPart(target)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bodyVelocity.Velocity = (target.Position - hrp.Position).Unit * 50
+    bodyVelocity.Parent = hrp
+
+    local connection
+    connection = RunService.Heartbeat:Connect(function()
+        if (hrp.Position - target.Position).Magnitude < 3 then
+            connection:Disconnect()
+            bodyVelocity:Destroy()
+        else
+            bodyVelocity.Velocity = (target.Position - hrp.Position).Unit * 50
+        end
+    end)
+end
+
+local function autoFlyDoors()
+    while FlyToDoors do
+        wait(0.3)
+        local currentRooms = Workspace:FindFirstChild("CurrentRooms")
+        if not currentRooms then continue end
+
+        -- 1. ถ้ามีกุญแจไปเก็บกุญแจ
+        if #trackedKeys > 0 then
+            local key = getClosestPart(trackedKeys)
+            if key then
+                flyToPart(key)
+                wait(0.5)
+                continue
+            end
+        end
+
+        -- 2. ถ้ามีเควสต์ (Lever) ไปทำเควสต์
+        if #trackedLevers > 0 then
+            local lever = getClosestPart(trackedLevers)
+            if lever then
+                flyToPart(lever)
+                wait(0.5)
+                continue
+            end
+        end
+
+        -- 3. ไปที่ประตูถัดไป
+        for _, room in pairs(currentRooms:GetChildren()) do
+            local door = room:FindFirstChild("Door")
+            if door and door.PrimaryPart then
+                flyToPart(door.PrimaryPart)
+                wait(0.5)
+                break
+            end
+        end
+    end
+end
+
+Tabs.MainTab:Toggle({
+    Title = "Fly to Doors",
+    Value = false,
+    Callback = function(Value)
+        FlyToDoors = Value
+        if Value then
+            spawn(autoFlyDoors)
+        end
+    end
+})
+
 
 Tabs.MainTab:Slider({
     Title = "FOV Changer",
