@@ -6,10 +6,8 @@ repeat task.wait() until game:IsLoaded()
 
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local Player = Players.LocalPlayer
+local player = Players.LocalPlayer
 
 --================= LOADING UI =====================
 local LoadGui = Instance.new("ScreenGui", game.CoreGui)
@@ -55,7 +53,6 @@ end)
 
 local loadTime = math.random(3,4)
 local start = tick()
-
 while tick() - start < loadTime do
     local p = math.floor(((tick()-start)/loadTime)*100)
     Percent.Text = p .. "%"
@@ -67,15 +64,9 @@ Percent.Text = "100%"
 task.wait(0.4)
 LoadGui:Destroy()
 
--- Services
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
--- Toggle state
+--================= MAIN UI =====================
 local autofarm = false
-local farmThread
 
--- UI Creation
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoFarmGui"
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
@@ -86,74 +77,86 @@ Main.Position = UDim2.fromScale(0.5, 0.5)
 Main.AnchorPoint = Vector2.new(0.5, 0.5)
 Main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 Main.Active = true
-Main.Draggable = true -- classic drag
+Main.Draggable = true
 Main.Parent = ScreenGui
 
--- Title
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.fromOffset(400, 40)
-Title.Position = UDim2.fromOffset(0, 10)
-Title.BackgroundTransparency = 1
-Title.Text = "Vrey HUB"
-Title.TextColor3 = Color3.fromRGB(64, 224, 255) -- soft cyan-blue
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 24
-Title.TextXAlignment = Enum.TextXAlignment.Center
-Title.Parent = Main
+local TitleUI = Instance.new("TextLabel")
+TitleUI.Size = UDim2.fromOffset(400, 40)
+TitleUI.Position = UDim2.fromOffset(0, 10)
+TitleUI.BackgroundTransparency = 1
+TitleUI.Text = "Very HUB"
+TitleUI.TextColor3 = Color3.fromRGB(64, 224, 255)
+TitleUI.Font = Enum.Font.GothamBold
+TitleUI.TextSize = 24
+TitleUI.TextXAlignment = Enum.TextXAlignment.Center
+TitleUI.Parent = Main
 
--- Soft Cyan Outline
-local Stroke = Instance.new("UIStroke")
-Stroke.Color = Color3.fromRGB(64, 224, 255) -- soft cyan-blue
-Stroke.Thickness = 2
-Stroke.Parent = Main
+local StrokeUI = Instance.new("UIStroke")
+StrokeUI.Color = Color3.fromRGB(64, 224, 255)
+StrokeUI.Thickness = 2
+StrokeUI.Parent = Main
 
--- Button
 local Button = Instance.new("TextButton")
 Button.Size = UDim2.fromOffset(200, 50)
 Button.Position = UDim2.fromScale(0.5, 0.5)
 Button.AnchorPoint = Vector2.new(0.5, 0.5)
 Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Button.TextColor3 = Color3.fromRGB(64, 224, 255) -- soft cyan-blue
+Button.TextColor3 = Color3.fromRGB(64, 224, 255)
 Button.Text = "Auto Farm OFF"
 Button.Font = Enum.Font.GothamBold
 Button.TextSize = 18
 Button.Parent = Main
 
--- Button Outline
 local BtnStroke = Instance.new("UIStroke")
-BtnStroke.Color = Color3.fromRGB(64, 224, 255) -- soft cyan-blue
+BtnStroke.Color = Color3.fromRGB(64, 224, 255)
 BtnStroke.Thickness = 1.5
 BtnStroke.Parent = Button
 
--- Auto Farm Function
-local function startFarm()
-    while autofarm do
-        local character = player.Character
-        local hrp = character and character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if not autofarm then break end
+--================= AUTO FARM + HOP =====================
+local function goFarmAndHop()
+    local character = player.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
 
-                if obj:IsA("SpecialMesh")
-                and obj.MeshId == "rbxassetid://129768917989779"
-                and obj.Parent:IsA("BasePart") then
-                    hrp.CFrame = obj.Parent.CFrame + Vector3.new(0, 3, 0)
-                    task.wait(0.1)
-                end
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("SpecialMesh")
+        and obj.MeshId == "rbxassetid://129768917989779"
+        and obj.Parent:IsA("BasePart") then
+
+            -- วาปไปจุดฟาร์ม
+            hrp.CFrame = obj.Parent.CFrame + Vector3.new(0,3,0)
+
+            -- รอที่จุดฟาร์ม 10 วิ
+            local startTime = tick()
+            while tick() - startTime < 10 do
+                task.wait(0.2)
+                if not autofarm then return end
             end
+
+            -- Hop เซิร์ฟ
+            local PlaceId = game.PlaceId
+            local queue = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
+            if queue then
+                queue([[
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/USERNAME/REPO/main/VeryHub.lua"))()
+                ]])
+                game:GetService("TeleportService"):Teleport(PlaceId)
+            else
+                warn("Executor ของคุณไม่รองรับ Server Hop อัตโนมัติ")
+            end
+            break
         end
-        task.wait(0.2)
     end
 end
 
--- Button Toggle
+--================= BUTTON TOGGLE =====================
 Button.MouseButton1Click:Connect(function()
     autofarm = not autofarm
-
     if autofarm then
         Button.Text = "Auto Farm ON"
-        farmThread = task.spawn(startFarm)
+        task.spawn(goFarmAndHop)
     else
         Button.Text = "Auto Farm OFF"
     end
 end)
+
