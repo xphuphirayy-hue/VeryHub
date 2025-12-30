@@ -1,0 +1,128 @@
+--// Very Hub Loader | Lootlet + WebKey | Obfuscated
+
+repeat task.wait() until game:IsLoaded()
+
+local SG = game:GetService("StarterGui")
+
+local function Notify(t)
+    pcall(function()
+        SG:SetCore("SendNotification",{
+            Title = "Very Hub",
+            Text = t,
+            Duration = 2
+        })
+    end)
+end
+
+-- ===== Obfuscation Utils =====
+local function CH(t)
+    local s=""
+    for i=1,#t do s=s..string.char(t[i]) end
+    return s
+end
+
+local function CAT(...)
+    local r=""
+    for _,v in ipairs({...}) do r=r..v end
+    return r
+end
+
+-- ===== Base =====
+local P = CH({104,116,116,112,115,58,47,47}) -- https://
+local R = "raw.githubusercontent.com"
+
+-- ===== Lootlet =====
+local LOOTLET = "https://lootdest.org/s?57r6GCd9"
+
+-- ===== Key List (GitHub) =====
+local KEY_URL = CAT(
+    P,R,"/",
+    "xphuphirayy-hue","/","key","/",
+    "refs","/","heads","/","main","/",
+    "key","/","i","/","need","/","money"
+)
+
+-- ===== Main Script =====
+local MAIN_URL = CAT(
+    P,R,"/",
+    "xphuphirayy-hue","/","VeryHub","/",
+    "refs","/","heads","/","main","/",
+    "1298644219925106803"
+)
+
+-- ===== UI =====
+local gui = Instance.new("ScreenGui",game.CoreGui)
+gui.Name = "VeryHub_Key"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame",gui)
+frame.Size = UDim2.fromScale(0.26,0.26)
+frame.Position = UDim2.fromScale(0.37,0.34)
+frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+Instance.new("UICorner",frame).CornerRadius = UDim.new(0,14)
+
+local box = Instance.new("TextBox",frame)
+box.Size = UDim2.fromScale(0.85,0.25)
+box.Position = UDim2.fromScale(0.075,0.25)
+box.PlaceholderText = "Enter Key"
+box.Text = ""
+box.TextColor3 = Color3.new(1,1,1)
+box.BackgroundColor3 = Color3.fromRGB(35,35,35)
+box.ClearTextOnFocus = false
+Instance.new("UICorner",box).CornerRadius = UDim.new(0,8)
+
+local get = Instance.new("TextButton",frame)
+get.Text = "Get Key"
+get.Size = UDim2.fromScale(0.4,0.2)
+get.Position = UDim2.fromScale(0.075,0.6)
+get.BackgroundColor3 = Color3.fromRGB(70,70,70)
+get.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",get).CornerRadius = UDim.new(0,8)
+
+local check = Instance.new("TextButton",frame)
+check.Text = "Check"
+check.Size = UDim2.fromScale(0.4,0.2)
+check.Position = UDim2.fromScale(0.525,0.6)
+check.BackgroundColor3 = Color3.fromRGB(140,0,200)
+check.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner",check).CornerRadius = UDim.new(0,8)
+
+-- ===== Actions =====
+get.MouseButton1Click:Connect(function()
+    pcall(function()
+        setclipboard(LOOTLET)
+    end)
+    Notify("ให้ลิงค์ไปแล้ว...")
+end)
+
+local function Success()
+    gui:Destroy()
+
+    local g = Instance.new("ScreenGui",game.CoreGui)
+    local t = Instance.new("TextLabel",g)
+    t.Size = UDim2.fromScale(1,1)
+    t.BackgroundTransparency = 1
+    t.Text = "Very Hub"
+    t.TextScaled = true
+    t.Font = Enum.Font.GothamBlack
+    t.TextColor3 = Color3.fromRGB(180,0,255)
+
+    task.delay(1.3,function()
+        g:Destroy()
+    end)
+end
+
+check.MouseButton1Click:Connect(function()
+    local data
+    local ok = pcall(function()
+        data = game:HttpGet(KEY_URL)
+    end)
+
+    if ok and data and string.find(data, box.Text, 1, true) then
+        Success()
+        task.wait(0.25)
+        loadstring(game:HttpGet(MAIN_URL))()
+    else
+        Notify("Key ไม่ถูก")
+    end
+end)
