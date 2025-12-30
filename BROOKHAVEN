@@ -1,0 +1,159 @@
+--==================================================
+-- VERY HUB : LOADING + AUTO EXECUTOR + SERVER HOP
+--==================================================
+
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+
+--================= LOADING UI =====================
+local LoadGui = Instance.new("ScreenGui", game.CoreGui)
+LoadGui.IgnoreGuiInset = true
+LoadGui.ResetOnSpawn = false
+
+local Frame = Instance.new("Frame", LoadGui)
+Frame.Size = UDim2.new(0, 520, 0, 200)
+Frame.Position = UDim2.new(0.5,-260,0.5,-100)
+Frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
+Frame.BorderSizePixel = 0
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,14)
+
+local Stroke = Instance.new("UIStroke", Frame)
+Stroke.Color = Color3.fromRGB(0,255,0)
+Stroke.Thickness = 2
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1,0,0,80)
+Title.Position = UDim2.new(0,0,0.15,0)
+Title.BackgroundTransparency = 1
+Title.Text = ""
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 38
+Title.TextColor3 = Color3.fromRGB(0,255,0)
+
+local Percent = Instance.new("TextLabel", Frame)
+Percent.Size = UDim2.new(1,0,0,40)
+Percent.Position = UDim2.new(0,0,0.65,0)
+Percent.BackgroundTransparency = 1
+Percent.Text = "0%"
+Percent.Font = Enum.Font.Gotham
+Percent.TextSize = 22
+Percent.TextColor3 = Color3.fromRGB(220,220,220)
+
+task.spawn(function()
+    local txt = "Very Hub"
+    for i = 1, #txt do
+        Title.Text = txt:sub(1,i)
+        task.wait(0.15)
+    end
+end)
+
+local loadTime = math.random(5,8)
+local start = tick()
+
+while tick() - start < loadTime do
+    local p = math.floor(((tick()-start)/loadTime)*100)
+    Percent.Text = p .. "%"
+    Stroke.Transparency = 0.2 + math.sin(tick()*6)*0.3
+    RunService.RenderStepped:Wait()
+end
+
+Percent.Text = "100%"
+task.wait(0.4)
+LoadGui:Destroy()
+
+-- Services
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- Toggle state
+local autofarm = false
+local farmThread
+
+-- UI Creation
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "AutoFarmGui"
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.fromOffset(400, 300)
+Main.Position = UDim2.fromScale(0.5, 0.5)
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Main.Active = true
+Main.Draggable = true -- classic drag
+Main.Parent = ScreenGui
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.fromOffset(400, 40)
+Title.Position = UDim2.fromOffset(0, 10)
+Title.BackgroundTransparency = 1
+Title.Text = "Vrey HUB"
+Title.TextColor3 = Color3.fromRGB(64, 224, 255) -- soft cyan-blue
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 24
+Title.TextXAlignment = Enum.TextXAlignment.Center
+Title.Parent = Main
+
+-- Soft Cyan Outline
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(64, 224, 255) -- soft cyan-blue
+Stroke.Thickness = 2
+Stroke.Parent = Main
+
+-- Button
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.fromOffset(200, 50)
+Button.Position = UDim2.fromScale(0.5, 0.5)
+Button.AnchorPoint = Vector2.new(0.5, 0.5)
+Button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Button.TextColor3 = Color3.fromRGB(64, 224, 255) -- soft cyan-blue
+Button.Text = "Auto Farm OFF"
+Button.Font = Enum.Font.GothamBold
+Button.TextSize = 18
+Button.Parent = Main
+
+-- Button Outline
+local BtnStroke = Instance.new("UIStroke")
+BtnStroke.Color = Color3.fromRGB(64, 224, 255) -- soft cyan-blue
+BtnStroke.Thickness = 1.5
+BtnStroke.Parent = Button
+
+-- Auto Farm Function
+local function startFarm()
+    while autofarm do
+        local character = player.Character
+        local hrp = character and character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if not autofarm then break end
+
+                if obj:IsA("SpecialMesh")
+                and obj.MeshId == "rbxassetid://129768917989779"
+                and obj.Parent:IsA("BasePart") then
+                    hrp.CFrame = obj.Parent.CFrame + Vector3.new(0, 3, 0)
+                    task.wait(0.1)
+                end
+            end
+        end
+        task.wait(0.2)
+    end
+end
+
+-- Button Toggle
+Button.MouseButton1Click:Connect(function()
+    autofarm = not autofarm
+
+    if autofarm then
+        Button.Text = "Auto Farm ON"
+        farmThread = task.spawn(startFarm)
+    else
+        Button.Text = "Auto Farm OFF"
+    end
+end)
