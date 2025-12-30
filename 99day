@@ -947,6 +947,7 @@ local Button = Tab2:Button({
         if hrp and _G.SavedPosition then
             hrp.CFrame = _G.SavedPosition
             _G.SavedPosition = nil
+        end
     end
 })
 
@@ -1808,7 +1809,7 @@ local function setModelCFrame(model, targetCFrame)
     pcall(function()
         if model.PrimaryPart then
             model:SetPrimaryPartCFrame(targetCFrame)
-        elseif
+        else
             local parts = collectParts(model)
             local center = Vector3.new(0,0,0)
             local n = 0
