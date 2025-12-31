@@ -1,82 +1,187 @@
+--==================================================
+-- VERY HUB : LOADING + AUTO EXECUTOR + SERVER HOP
+--==================================================
+
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Player = Players.LocalPlayer
+
+--================= GUI =====================
+local Gui = Instance.new("ScreenGui", game.CoreGui)
+Gui.IgnoreGuiInset = true
+Gui.ResetOnSpawn = false
+
+--================= MAIN FRAME =====================
+local Main = Instance.new("Frame", Gui)
+Main.Size = UDim2.new(0, 560, 0, 260)
+Main.Position = UDim2.new(0.5, -280, 0.5, -130)
+Main.BackgroundColor3 = Color3.fromRGB(12,12,12)
+Main.BorderSizePixel = 0
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0,18)
+
+local GreenStroke = Instance.new("UIStroke", Main)
+GreenStroke.Color = Color3.fromRGB(0,255,120)
+GreenStroke.Thickness = 2
+
+local BlueStroke = Instance.new("UIStroke", Main)
+BlueStroke.Color = Color3.fromRGB(0,170,255)
+BlueStroke.Thickness = 1
+BlueStroke.Transparency = 0.4
+
+--================= TITLE =====================
+local TitlePlate = Instance.new("Frame", Main)
+TitlePlate.Size = UDim2.new(0,220,0,42)
+TitlePlate.Position = UDim2.new(0.5,-110,0,-18)
+TitlePlate.BackgroundColor3 = Color3.fromRGB(10,10,10)
+TitlePlate.BorderSizePixel = 0
+Instance.new("UICorner", TitlePlate).CornerRadius = UDim.new(0,10)
+
+local TPStroke = Instance.new("UIStroke", TitlePlate)
+TPStroke.Color = Color3.fromRGB(0,170,255)
+TPStroke.Thickness = 2
+
+local Title = Instance.new("TextLabel", TitlePlate)
+Title.Size = UDim2.new(1,0,1,0)
+Title.BackgroundTransparency = 1
+Title.Text = "Very Hub"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 26
+Title.TextColor3 = Color3.fromRGB(0,255,120)
+
+--================= BINARY BARS =====================
+local function BinaryBar(y, text)
+    local b = Instance.new("Frame", Main)
+    b.Size = UDim2.new(0.75,0,0,30)
+    b.Position = UDim2.new(0.125,0,0,y)
+    b.BackgroundColor3 = Color3.fromRGB(18,18,18)
+    b.BorderSizePixel = 0
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0,8)
+
+    local s = Instance.new("UIStroke", b)
+    s.Color = Color3.fromRGB(0,255,120)
+    s.Transparency = 0.6
+
+    local t = Instance.new("TextLabel", b)
+    t.Size = UDim2.new(1,-20,1,0)
+    t.Position = UDim2.new(0,10,0,0)
+    t.BackgroundTransparency = 1
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.Text = text
+    t.Font = Enum.Font.Code
+    t.TextSize = 16
+    t.TextColor3 = Color3.fromRGB(0,255,120)
+end
+
+BinaryBar(80,  "01010110 01100101 01110010 01111001") -- Very
+BinaryBar(120, "01001000 01110101 01100010")        -- Hub
+BinaryBar(160, "01 มันมีความหมายยยย")
+
+--================= PERCENT TEXT =====================
+local Percent = Instance.new("TextLabel", Main)
+Percent.Size = UDim2.new(1,0,0,30)
+Percent.Position = UDim2.new(0,0,1,-60)
+Percent.BackgroundTransparency = 1
+Percent.Text = "0%"
+Percent.Font = Enum.Font.Gotham
+Percent.TextSize = 22
+Percent.TextColor3 = Color3.fromRGB(220,220,220)
+
+--================= PROGRESS TAB =====================
+local ProgressBG = Instance.new("Frame", Main)
+ProgressBG.Size = UDim2.new(0.75,0,0,14)
+ProgressBG.Position = UDim2.new(0.125,0,1,-28)
+ProgressBG.BackgroundColor3 = Color3.fromRGB(25,25,25)
+ProgressBG.BorderSizePixel = 0
+Instance.new("UICorner", ProgressBG).CornerRadius = UDim.new(1,0)
+
+local BGStroke = Instance.new("UIStroke", ProgressBG)
+BGStroke.Color = Color3.fromRGB(0,170,255)
+BGStroke.Transparency = 0.6
+BGStroke.Thickness = 1
+
+local ProgressFill = Instance.new("Frame", ProgressBG)
+ProgressFill.Size = UDim2.new(0,0,1,0)
+ProgressFill.BackgroundColor3 = Color3.fromRGB(0,255,120)
+ProgressFill.BorderSizePixel = 0
+Instance.new("UICorner", ProgressFill).CornerRadius = UDim.new(1,0)
+
+--================= CORNER L SHAPES =====================
+local function Corner(x,y,rx,ry,color)
+    local c = Instance.new("Frame", Gui)
+    c.Size = UDim2.new(0,60,0,60)
+    c.Position = UDim2.new(x,rx,y,ry)
+    c.BackgroundColor3 = color
+    c.BorderSizePixel = 0
+    Instance.new("UICorner", c).CornerRadius = UDim.new(0,8)
+end
+
+Corner(0.5,-330,0.5,-170,Color3.fromRGB(0,255,120))
+Corner(0.5,270,0.5,-170,Color3.fromRGB(0,170,255))
+Corner(0.5,-330,0.5,110,Color3.fromRGB(0,170,255))
+Corner(0.5,270,0.5,110,Color3.fromRGB(0,255,120))
+
+--================= LOADING LOGIC =====================
+local loadTime = math.random(4,5)
+local start = tick()
+
+while tick() - start < loadTime do
+    local alpha = math.clamp((tick()-start)/loadTime,0,1)
+    local p = math.floor(alpha * 100)
+
+    Percent.Text = p .. "%"
+    ProgressFill.Size = UDim2.new(alpha,0,1,0)
+    GreenStroke.Transparency = 0.25 + math.sin(tick()*5)*0.25
+
+    RunService.RenderStepped:Wait()
+end
+
+Percent.Text = "100%"
+ProgressFill.Size = UDim2.new(1,0,1,0)
+
+task.wait(0.6)
+Gui:Destroy()
+
+--//======// END LOADING \\======\\--
+
+-- ====== VARIABLES ======
 local placeId = game.PlaceId
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local queueteleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
+local TeleportCheck = false
 
--- === MAP GROUPS (MULTI PLACE ID) ===
+-- ====== MAP GROUPS ======
 local MAPS = {
-
-    ["BLOX_FRUITS"] = {
-        2753915549,   -- Sea 1
-        4442272183,   -- Sea 2
-        7449423635    -- Sea 3
-    },
-
-    ["BROOKHAVEN"] = {
-        4924922222
-    },
-
-    ["PET_SIM_99"] = {
-        8737899170,
-        16498369169  -- Trading / Sub place
-    },
-
-    ["DOORS"] = {
-        6516141723,
-        6839171747   -- Hotel+
-    },
-
-    ["MM2"] = {
-        142823291,
-        335132309    -- Testing / Old
-    },
-
-    ["ARSENAL"] = {
-        286090429,
-        14488378143  -- Competitive
-    },
-
-    ["ADOPT_ME"] = {
-        920587237,
-        11156779721  -- Neighborhood
-    },
-
-    ["BEDWARS"] = {
-        6872265039,
-        8444591321   -- Lobby
-    },
-
-    ["TSB"] = {
-        10449761463
-    },
-
-    ["FISCH"] = {
-        16732694052
-    },
-
-    -- === 99 DAY ===
-    ["99DAY_LOBBY"] = {
-        79546208627805
-    },
-
-    ["99DAY_GAME"] = {
-        126509999114328
-    }
+    ["BLOX_FRUITS"] = {2753915549, 4442272183, 7449423635},
+    ["BROOKHAVEN"] = {4924922222},
+    ["PET_SIM_99"] = {8737899170, 16498369169},
+    ["DOORS"] = {6516141723, 6839171747},
+    ["MM2"] = {142823291, 335132309},
+    ["ADOPT_ME"] = {920587237, 11156779721},
+    ["BEDWARS"] = {6872265039, 8444591321},
+    ["TSB"] = {10449761463},
+    ["FISCH"] = {16732694052},
+    ["99DAY_LOBBY"] = {79546208627805},
+    ["99DAY_GAME"] = {126509999114328}
 }
 
--- === SCRIPT URLS ===
+-- ====== SCRIPT URLS ======
 local SCRIPTS = {
     BLOX_FRUITS = "",
-    BROOKHAVEN  = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/BROOKHAVEN",
-    PET_SIM_99  = "",
-    DOORS       = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/doors",
-    MM2         = "",
-    ARSENAL     = "",
-    ADOPT_ME    = "",
-    BEDWARS     = "",
-    TSB         = "",
-    FISCH       = "",
-    ["99DAY"]   = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/main/99dayProtection"
+    BROOKHAVEN = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/BROOKHAVEN",
+    PET_SIM_99 = "",
+    DOORS = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/doors",
+    MM2 = "",
+    ADOPT_ME = "",
+    BEDWARS = "",
+    TSB = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/TSB",
+    FISCH = "",
+    ["99DAY"] = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/main/99dayProtection"
 }
 
--- === DETECT FUNCTION ===
+-- ====== DETECT FUNCTION ======
 local function isInMap(mapTable)
     for _, id in ipairs(mapTable) do
         if placeId == id then
@@ -86,27 +191,45 @@ local function isInMap(mapTable)
     return false
 end
 
--- === AUTO LOAD ===
-for mapName, ids in pairs(MAPS) do
-    if isInMap(ids) then
+-- ====== EXECUTE SCRIPT FUNCTION ======
+local function executeScript(mapName)
+    local scriptKey = mapName:find("99DAY") and "99DAY" or mapName
+    local url = SCRIPTS[scriptKey]
 
-        if mapName == "99DAY_LOBBY" then
-            warn("⛔ 99 Day Lobby — ยังไม่รันสคริป")
-            return
-        end
-
-        local scriptKey = mapName:find("99DAY") and "99DAY" or mapName
-        local url = SCRIPTS[scriptKey]
-
-        if url then
-            loadstring(game:HttpGet(url))()
-        else
-            warn("⚠ ไม่มีสคริปสำหรับแมพนี้")
-        end
-
-        return
+    if url and url ~= "" then
+        loadstring(game:HttpGet(url))()
+    else
+        warn("⚠ ไม่มีสคริปสำหรับแมพนี้")
     end
 end
 
-warn("❓ แมพนี้ยังไม่รองรับ Very Hub")
+-- ====== AUTO LOAD (เฉพาะ teleport) ======
+Player.OnTeleport:Connect(function(State)
+    if not TeleportCheck and queueteleport then
+        TeleportCheck = true
+        -- รันสคริปต์เดียวกับแมพต่อไปหลัง teleport
+        queueteleport([[
+            local url = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/1298644219925106803"
+            if url then
+                loadstring(game:HttpGet(url))()
+            end
+        ]])
+    end
+end)
 
+local function checkMap()
+    for mapName, ids in pairs(MAPS) do
+        if isInMap(ids) then
+            if mapName == "99DAY_LOBBY" then
+                warn("⛔ 99 Day Lobby — จะไม่รันสคริป")
+                return
+            end
+
+            warn("🚀 Auto Execute : "..mapName)
+            executeScript(mapName)
+            return
+        end
+    end
+
+    warn("❓ แมพนี้ยังไม่รองรับ Very Hub")
+end
