@@ -1,0 +1,9 @@
+local scriptContent = game:HttpGet("https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/1298644219925106803", true)
+
+loadstring(scriptContent)()
+
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Notify Very Hub",
+    Text = "Very Hub executor successful.",
+    Duration = 3
+})
