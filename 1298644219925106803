@@ -1,129 +1,25 @@
---==================================================
--- VERY HUB : LOADING + AUTO EXECUTOR + SERVER HOP
---==================================================
-
-repeat task.wait() until game:IsLoaded()
-
---================= SERVICES =====================
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
-local Player = Players.LocalPlayer
-
---================= QUEUE TELEPORT =====================
-local queueteleport =
-    queue_on_teleport or
-    (syn and syn.queue_on_teleport) or
-    (fluxus and fluxus.queue_on_teleport)
-
---================= LOADING UI (เหมือนเดิม ตัดออกได้ถ้าไม่ใช้) =====================
-do
-    local Gui = Instance.new("ScreenGui", game.CoreGui)
-    Gui.IgnoreGuiInset = true
-    Gui.ResetOnSpawn = false
-
-    local Main = Instance.new("Frame", Gui)
-    Main.Size = UDim2.new(0,560,0,260)
-    Main.Position = UDim2.new(0.5,-280,0.5,-130)
-    Main.BackgroundColor3 = Color3.fromRGB(12,12,12)
-    Main.BorderSizePixel = 0
-    Instance.new("UICorner", Main).CornerRadius = UDim.new(0,18)
-
-    local Percent = Instance.new("TextLabel", Main)
-    Percent.Size = UDim2.new(1,0,0,30)
-    Percent.Position = UDim2.new(0,0,1,-60)
-    Percent.BackgroundTransparency = 1
-    Percent.Text = "0%"
-    Percent.Font = Enum.Font.Gotham
-    Percent.TextSize = 22
-    Percent.TextColor3 = Color3.fromRGB(220,220,220)
-
-    local ProgressBG = Instance.new("Frame", Main)
-    ProgressBG.Size = UDim2.new(0.75,0,0,14)
-    ProgressBG.Position = UDim2.new(0.125,0,1,-28)
-    ProgressBG.BackgroundColor3 = Color3.fromRGB(25,25,25)
-    ProgressBG.BorderSizePixel = 0
-    Instance.new("UICorner", ProgressBG).CornerRadius = UDim.new(1,0)
-
-    local ProgressFill = Instance.new("Frame", ProgressBG)
-    ProgressFill.Size = UDim2.new(0,0,1,0)
-    ProgressFill.BackgroundColor3 = Color3.fromRGB(0,255,120)
-    ProgressFill.BorderSizePixel = 0
-    Instance.new("UICorner", ProgressFill).CornerRadius = UDim.new(1,0)
-
-    local loadTime = math.random(3,4)
-    local start = tick()
-
-    while tick() - start < loadTime do
-        local alpha = math.clamp((tick()-start)/loadTime,0,1)
-        Percent.Text = math.floor(alpha*100).."%"
-        ProgressFill.Size = UDim2.new(alpha,0,1,0)
-        RunService.RenderStepped:Wait()
-    end
-
-    Gui:Destroy()
-end
-
---================= MAP GROUPS =====================
-local MAPS = {
-    ["BLOX_FRUITS"] = {2753915549, 4442272183, 7449423635},
-    ["BROOKHAVEN"]  = {4924922222},
-    ["DOORS"]       = {6516141723, 6839171747},
-    ["TSB"]         = {10449761463},
-    ["99DAY_LOBBY"] = {79546208627805},
-    ["99DAY_GAME"]  = {126509999114328}
+local scripts = {
+    [4924922222] = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/BROOKHAVEN",
+    [6516141723] = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/doors",
+    [6839171747] = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/doors",
+    [10449761463] = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/TSB",
+    [126509999114328] = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/main/99dayProtection",
+    [] = ""
+    [] = ""
+    [] = ""
+    [] = ""
+    [] = ""
+    [] = ""
+    [] = ""
+    [] = ""
+    [] = ""
+    [] = ""
+    [] = ""
+    [] = ""
+    [] = ""
 }
 
---================= SCRIPT URLS =====================
-local SCRIPTS = {
-    BROOKHAVEN = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/BROOKHAVEN",
-    DOORS      = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/doors",
-    TSB        = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/TSB",
-    ["99DAY"]  = "https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/main/99dayProtection"
-}
-
---================= FUNCTIONS =====================
-local placeId = game.PlaceId
-
-local function isInMap(list)
-    for _,id in ipairs(list) do
-        if placeId == id then
-            return true
-        end
-    end
-end
-
-local function executeScript(key)
-    local url = SCRIPTS[key]
-    if url then
-        warn("🚀 Execute :", key)
-        loadstring(game:HttpGet(url))()
-    else
-        warn("⚠ ไม่มีสคริปสำหรับ:", key)
-    end
-end
-
---================= MAIN CHECK =====================
-local function checkMap()
-    warn("📍 PlaceId:", placeId)
-
-    for name,ids in pairs(MAPS) do
-        if isInMap(ids) then
-
-            if name == "99DAY_LOBBY" then
-                warn("⏳ 99 Day Lobby — รอเข้าเกมหลัก")
-                return
-            end
-
-            if name == "99DAY_GAME" then
-                executeScript("99DAY")
-                return
-            end
-
-            executeScript(name)
-            return
-        end
-    end
-
-    warn("❓ แมพนี้ยังไม่รองรับ Very Hub")
+local url = scripts[game.PlaceId]
+if url then
+    loadstring(game:HttpGet(url))()
 end
