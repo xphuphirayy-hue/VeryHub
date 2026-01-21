@@ -1,1 +1,1 @@
-loadstring(game:HttpGet(url))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/1298644219925106803"))()
