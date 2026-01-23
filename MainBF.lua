@@ -14,9 +14,9 @@ local Path = "https://files.btteam.net/files/library/"
 
 local Library = loadstring(game:HttpGet(Path..Premium))()
 local SaveManager = loadstring(game:HttpGet(Path.."addons/savemanager.lua"))()
-local Main_Module = loadstring(game:HttpGet("https://files.btteam.net/files/games/bf/modules/Front-modules.lua"))()
-local QuestModules = loadstring(game:HttpGet("https://files.btteam.net/files/games/bf/modules/Quest-modules.lua"))()
-local OtherModules = loadstring(game:HttpGet("https://files.btteam.net/files/games/bf/modules/Others-modules.lua"))()
+local Main_Module = loadstring(game:HttpGet("https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/Main_Module.lua"))()
+local QuestModules = loadstring(game:HttpGet("https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/QuestModules.lua"))()
+local OtherModules = loadstring(game:HttpGet("https://raw.githubusercontent.com/xphuphirayy-hue/VeryHub/refs/heads/main/OtherModules.lua"))()
 
 local Backgrounds = {
     Default = "http://www.roblox.com/asset/?id=92249981219647",
