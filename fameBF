@@ -1,0 +1,875 @@
+-- ================== ENV ==================
+local _ENV = (getgenv or getrenv or getfenv)()
+
+-- ================== SERVICES ==================
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
+
+-- ================== PLAYER ==================
+local player = Players.LocalPlayer
+local function GetChar()
+    return player.Character or player.CharacterAdded:Wait()
+end
+
+-- ================== ANTI AFK ==================
+player.Idled:Connect(function()
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
+end)
+
+-- ================== WORLD ==================
+local Enemies = workspace:WaitForChild("Enemies")
+
+-- ================== REMOTES ==================
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local CommF = Remotes:WaitForChild("CommF_")
+local Modules = ReplicatedStorage:WaitForChild("Modules")
+local Net = Modules:WaitForChild("Net")
+local RE_RegisterAttack = Net:WaitForChild("RE/RegisterAttack")
+local RE_RegisterHit = Net:WaitForChild("RE/RegisterHit")
+
+-- ================== DATA ==================
+local Data = player:WaitForChild("Data")
+
+-- ================== SETTINGS ==================
+_G.AutoFarm = true
+_G.NoClip = true
+_G.KaiTan = true
+
+-- ================== STATE ==================
+local IsFlying = false
+local IsEquipping = false
+local LockTarget = nil
+local WaitingAtSpawn = false
+local WaterBV = nil
+
+-- ================== UTIL ==================
+local function IsAlive(m)
+    return m and m:FindFirstChild("Humanoid") and m.Humanoid.Health > 0
+end
+
+local function HasQuest()
+    local gui = player.PlayerGui:FindFirstChild("Main")
+    return gui and gui:FindFirstChild("Quest") and gui.Quest.Visible
+end
+
+-- ================== FLY (ใช้เฉพาะเดินทาง) ==================
+local function FlyTo(cf)
+    local hrp = GetChar():WaitForChild("HumanoidRootPart")
+    IsFlying = true
+    local dist = (hrp.Position - cf.Position).Magnitude
+    local tween = TweenService:Create(
+        hrp,
+        TweenInfo.new(math.clamp(dist/300,0.1,2), Enum.EasingStyle.Linear),
+        {CFrame = cf}
+    )
+    tween:Play()
+    tween.Completed:Wait()
+    IsFlying = false
+end
+
+-- ================== MELEE ==================
+local function IsMelee(tool)
+    return tool and tool:IsA("Tool")
+        and tool:FindFirstChild("weapontype")
+        and tool.weapontype:FindFirstChild("melee")
+end
+
+local function EquipMelee()
+    if IsEquipping then return end
+    local char = GetChar()
+    if char:FindFirstChildOfClass("Tool") then return end
+    IsEquipping = true
+    for _,tool in ipairs(player.Backpack:GetChildren()) do
+        if IsMelee(tool) then
+            char.Humanoid:UnequipTools()
+            task.wait()
+            tool.Parent = char
+            break
+        end
+    end
+    IsEquipping = false
+end
+
+-- ================== ANTI WATER ==================
+local function EnableAntiWater()
+    local char = GetChar()
+    local hum = char:WaitForChild("Humanoid")
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    pcall(function()
+        hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+    end)
+    if not WaterBV then
+        WaterBV = Instance.new("BodyVelocity")
+        WaterBV.MaxForce = Vector3.new(0, math.huge, 0)
+        WaterBV.Velocity = Vector3.new(0, 60, 0)
+        WaterBV.Parent = hrp
+    end
+end
+
+local function DisableAntiWater()
+    if WaterBV then
+        WaterBV:Destroy()
+        WaterBV = nil
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if LockTarget then return end -- ❗ไม่ให้แทรกระหว่างตี
+    local char = GetChar()
+    local hum = char:FindFirstChild("Humanoid")
+    if not hum then return end
+    if hum:GetState() == Enum.HumanoidStateType.Swimming then
+        EnableAntiWater()
+    else
+        DisableAntiWater()
+    end
+end)
+
+-- ================== STICK ON MOB (นิ่งสนิท) ==================
+local function StickOnMob(mob)
+    local hrp = GetChar():WaitForChild("HumanoidRootPart")
+    DisableAntiWater()
+    IsFlying = true
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.AssemblyAngularVelocity = Vector3.zero
+    hrp.CFrame =
+        mob.HumanoidRootPart.CFrame
+        * CFrame.new(0, 18, 0)
+        * CFrame.Angles(0, math.rad(180), 0)
+end
+
+-- ================== FAST ATTACK ==================
+RunService.RenderStepped:Connect(function()
+    if not _G.AutoFarm then return end
+    EquipMelee()
+    RE_RegisterAttack:FireServer(0)
+    local hrp = GetChar():WaitForChild("HumanoidRootPart")
+    for _,mob in ipairs(Enemies:GetChildren()) do
+        if IsAlive(mob) and mob:FindFirstChild("HumanoidRootPart") then
+            if (mob.HumanoidRootPart.Position - hrp.Position).Magnitude <= 60 then
+                RE_RegisterHit:FireServer(
+                    mob.HumanoidRootPart,
+                    {{mob, mob.HumanoidRootPart}}
+                )
+            end
+        end
+    end
+end)
+
+-- ================== MONSTER SPAWN CF (ย่อ ใช้ตามของคุณเดิม) ==================
+local MonsterCF = {
+    ["Bandit"] = CFrame.new(1038.5533447266, 41.296249389648, 1576.5098876953),
+    ["Monkey"] = CFrame.new(-1448.1446533203, 50.851993560791, 63.60718536377),
+    ["Gorilla"] = CFrame.new(-1142.6488037109, 40.462348937988, -515.39227294922),
+    ["Pirate"] = CFrame.new(-1201.0881347656, 40.628940582275, 3857.5966796875),
+    ["Brute"] = CFrame.new(-1387.5324707031, 24.592035293579, 4100.9575195313),
+    ["Desert Bandit"] = CFrame.new(984.99896240234, 16.109552383423, 4417.91015625),
+    ["Desert Officer"] = CFrame.new(1547.1510009766, 14.452038764954, 4381.8002929688),
+    ["Snow Bandit"] = CFrame.new(1356.3028564453, 105.76865386963, -1328.2418212891),
+    ["Snowman"] = CFrame.new(1218.7956542969, 138.01184082031, -1488.0262451172),
+    ["Chief Petty Officer"] = CFrame.new(-4931.1552734375, 65.793113708496, 4121.8393554688),
+    ["Sky Bandit"] = CFrame.new(-4955.6411132813, 365.46365356445, -2908.1865234375),
+    ["Dark Master"] = CFrame.new(-5148.1650390625, 439.04571533203, -2332.9611816406),
+    ["Prisoner"] = CFrame.new(4937.31885, 0.332031399, 649.574524),
+    ["Dangerous Prisoner"] = CFrame.new(5099.6626, 0.351562679, 1055.7583),
+    ["Toga Warrior"] = CFrame.new(-1872.5166015625, 49.080215454102, -2913.810546875),
+    ["Gladiator"] = CFrame.new(-5369.0004882813, 61.24352645874, 8556.4921875),
+    ["Military Soldier"] = CFrame.new(-5787.00293, 75.8262634, 8651.69922),
+    ["Military Spy"] = CFrame.new(-5787.00293, 75.8262634, 8651.69922),
+    ["Fishman Warrior"] = CFrame.new(60844.10546875, 98.462875366211, 1298.3985595703),
+    ["Fishman Commando"] = CFrame.new(61738.3984375, 64.207321166992, 1433.8375244141),
+    ["God's Guard"] = CFrame.new(-4628.0498046875, 866.92877197266, -1931.2352294922),
+    ["Shanda"] = CFrame.new(-7894.6176757813, 5547.1416015625, -380.29119873047),
+    ["Royal Squad"] = CFrame.new(-7654.2514648438, 5637.1079101563, -1407.7550048828),
+    ["Royal Soldier"] = CFrame.new(-7760.4106445313, 5679.9077148438, -1884.8112792969),
+    ["Galley Pirate"] = CFrame.new(5557.1684570313, 152.32717895508, 3998.7758789063),
+    ["Galley Captain"] = CFrame.new(5677.6772, 92.7861, 4966.6323),
+    ["Raider"] = CFrame.new(68.8746, 93.6356, 2429.6753),
+    ["Mercenary"] = CFrame.new(-864.8501, 122.4710, 1453.1505),
+    ["Swan Pirate"] = CFrame.new(1065.3669, 137.6401, 1324.3799),
+    ["Factory Staff"] = CFrame.new(533.2205, 128.4688, 355.6262),
+    ["Marine Lieutenant"] = CFrame.new(-2489.2622, 84.6136, -3151.8831),
+    ["Marine Captain"] = CFrame.new(-2335.2026, 79.7867, -3245.8674),
+    ["Zombie"] = CFrame.new(-5536.4971, 101.0858, -835.5908),
+    ["Vampire"] = CFrame.new(-5806.1099, 16.7225, -1164.4385),
+    ["Snow Trooper"] = CFrame.new(535.2105, 432.7421, -5484.9165),
+    ["Winter Warrior"] = CFrame.new(1234.4449, 456.9542, -5174.1309),
+    ["Lab Subordinate"] = CFrame.new(-5720.5576, 63.3095, -4784.6104),
+    ["Horned Warrior"] = CFrame.new(-6292.7520, 91.1820, -5502.6499),
+    ["Magma Ninja"] = CFrame.new(-5461.8389, 130.3635, -5836.4702),
+    ["Lava Pirate"] = CFrame.new(-5251.1890, 55.1645, -4774.4097),
+    ["Ship Deckhand"] = CFrame.new(921.1237, 125.9840, 33088.3281),
+    ["Ship Engineer"] = CFrame.new(886.2818, 40.4779, 32800.8320),
+    ["Ship Steward"] = CFrame.new(943.8550, 129.5818, 33444.3672),
+    ["Ship Officer"] = CFrame.new(955.3846, 181.0834, 33331.8906),
+    ["Arctic Warrior"] = CFrame.new(5935.4541, 77.2602, -6472.7568),
+    ["Snow Lurker"] = CFrame.new(5628.4824, 57.5750, -6618.3481),
+    ["Sea Soldier"] = CFrame.new(-3185.0154, 58.7891, -9663.6064),
+    ["Water Fighter"] = CFrame.new(-3262.9302, 298.6904, -10552.5293),
+    ["Pirate Millionaire"] = CFrame.new(-435.6811, 189.6987, 5551.0757),
+    ["Pistol Billionaire"] = CFrame.new(-236.5365, 217.4668, 6006.0884),
+    ["Dragon Crew Warrior"] = CFrame.new(6301.9976, 104.7715, -1082.6075),
+    ["Dragon Crew Archer"] = CFrame.new(6831.1172, 441.7671, 446.5862),
+    ["Hydra Enforcer"] = CFrame.new(5195.6118, 1089.2368, 617.9743),
+    ["Venomous Assailant"] = CFrame.new(5195.6118, 1089.2368, 617.9743),
+    ["Marine Commodore"] = CFrame.new(2198.0063, 128.7108, -7109.5044),
+    ["Marine Rear Admiral"] = CFrame.new(3294.3142, 385.4113, -7048.6343),
+    ["Fishman Raider"] = CFrame.new(-10553.2686, 521.3844, -8176.9458),
+    ["Fishman Captain"] = CFrame.new(-10789.4014, 427.1864, -9131.4424),
+    ["Forest Pirate"] = CFrame.new(-13489.3975, 400.3035, -7770.2520),
+    ["Mythological Pirate"] = CFrame.new(-13508.6162, 582.4623, -6985.3037),
+    ["Jungle Pirate"] = CFrame.new(-12267.1035, 459.7526, -10277.2002),
+    ["Musketeer Pirate"] = CFrame.new(-13291.5078, 520.4734, -9904.6387),
+    ["Reborn Skeleton"] = CFrame.new(-8761.7715, 183.4317, 6168.3330),
+    ["Living Zombie"] = CFrame.new(-10103.7529, 238.5660, 6179.7598),
+    ["Demonic Soul"] = CFrame.new(-9712.0313, 204.6959, 6193.3223),
+    ["Posessed Mummy"] = CFrame.new(-9545.7764, 69.6199, 6339.5615),
+    ["Peanut Scout"] = CFrame.new(-2150.5879, 122.4977, -10358.9941),
+    ["Peanut President"] = CFrame.new(-2150.5879, 122.4977, -10358.9941),
+    ["Ice Cream Chef"] = CFrame.new(-789.9415, 209.3829, -11009.9805),
+    ["Ice Cream Commander"] = CFrame.new(-789.9415, 209.3829, -11009.9805),
+    ["Cookie Crafter"] = CFrame.new(-2321.7122, 36.6995, -12216.7871),
+    ["Cake Guard"] = CFrame.new(-1418.11011, 36.6718941, -12255.7324),
+    ["Baking Staff"] = CFrame.new(-1980.43848, 36.6716766, -12983.8418)
+    ["Head Baker"] = CFrame.new(-2251.5791, 52.2714615, -13033.3965)
+    ["Cocoa Warrior"] = CFrame.new(167.978516, 26.2254658, -12238.874)
+    ["Chocolate Bar Battler"] = CFrame.new(701.312073, 25.5824986, -12708.2148)
+    ["Sweet Thief"] = CFrame.new(-140.258301, 25.5824986, -12652.3115)
+    ["Candy Rebel"] = CFrame.new(47.9231453, 25.5824986, -13029.2402)
+    ["Candy Pirate"] = CFrame.new(-1437.56348, 17.1481285, -14385.6934)
+    ["Snow Demon"] = CFrame.new(-916.222656, 17.1481285, -14638.8125)
+    ["Isle Outlaw"] = CFrame.new(-16122.4062, 10.6328173, -257.351685)
+    ["Island Boy"] = CFrame.new(-16736.2266, 20.533947, -131.718811)
+    ["Sun-kissed Warrior"] = CFrame.new(-16413.5078, 54.6350479, 1054.43555)
+    ["Isle Champion"] = CFrame.new(-16787.3203, 20.6350517, 992.131836)
+    ["Serpent Hunter"] = CFrame.new(-16654.7754, 105.286232, 1579.67444)
+    ["Skull Slayer"] = CFrame.new(-16654.7754, 105.286232, 1579.67444)
+    ["Reef Bandit"] = CFrame.new(10736.6191, -2087.8439, 9338.4882)
+    ["Coral Pirate"] = CFrame.new(10965.1025, -2158.8842, 9177.2597)
+    ["Sea Chanter"] = CFrame.new(10621.0342, -2087.8440, 10102.0332)
+    ["Ocean Prophet"] = CFrame.new(11056.1445, -2001.6717, 10117.4493)
+    ["High Disciple"] = CFrame.new(9828.087890625, -1940.908935546875, 9693.0634765625)
+    ["Grand Devotee"] = CFrame.new(9557.5849609375, -1928.0404052734375, 9859.1826171875)
+}
+-- ================== QUEST CHECK (ใช้ของเดิม) ==================
+local Namemon, NameQuest, TP, num
+
+local function CheckQuest()
+    lv = Data.Level.Value
+    Lv = Data.Level.Value
+
+    if lv < 10 then
+        Namemon = "Bandit"
+        NameQuest = "BanditQuest1"
+        TP = CFrame.new(1058.99,16.13,1551.73)
+        num = 1
+
+    elseif lv < 15 then
+        Namemon = "Monkey"
+        NameQuest = "JungleQuest"
+        TP = CFrame.new(-1602.8,36.8,153.4)
+        num = 1
+
+    elseif lv < 30 then
+        Namemon = "Gorilla"
+        NameQuest = "JungleQuest"
+        TP = CFrame.new(-1602.8,36.8,153.4)
+        num = 2
+
+    elseif lv < 40 then
+        Namemon = "Pirate"
+        NameQuest = "BuggyQuest1"
+        TP = CFrame.new(-1140.1,5.1,3828.1)
+        num = 1
+
+    elseif lv < 60 then
+        Namemon = "Brute"
+        NameQuest = "BuggyQuest1"
+        TP = CFrame.new(-1140.1,5.1,3828.1)
+        num = 2
+
+    elseif lv < 75 then
+        Namemon = "Desert Bandit"
+        NameQuest = "DesertQuest"
+        TP = CFrame.new(896.4,6.4,4390.2)
+        num = 1
+
+    elseif lv < 90 then
+        Namemon = "Desert Officer"
+        NameQuest = "DesertQuest"
+        TP = CFrame.new(896.4,6.4,4390.2)
+        num = 2
+
+    elseif lv < 100 then
+        Namemon = "Snow Bandit"
+        NameQuest = "SnowQuest"
+        TP = CFrame.new(1385.3,87.2,-1297.6)
+        num = 1
+
+    elseif lv < 120 then
+        Namemon = "Snowman"
+        NameQuest = "SnowQuest"
+        TP = CFrame.new(1385.3,87.2,-1297.6)
+        num = 2
+
+    elseif lv < 150 then
+        Namemon = "Chief Petty Officer"
+        NameQuest = "MarineQuest2"
+        TP = CFrame.new(-5035.4,28.7,4324.6)
+        num = 1
+
+    elseif lv < 175 then
+        Namemon = "Sky Bandit"
+        NameQuest = "SkyQuest"
+        TP = CFrame.new(-4842.1,717.7,-2623.3)
+        num = 1
+
+    elseif lv < 190 then
+        Namemon = "Dark Master"
+        NameQuest = "SkyQuest"
+        TP = CFrame.new(-4842.1,717.7,-2623.3)
+        num = 2
+
+    elseif lv < 210 then
+        Namemon = "Prisoner"
+        NameQuest = "PrisonerQuest"
+        TP = CFrame.new(5310.6,0.3,474.8)
+        num = 1
+
+    elseif lv < 250 then
+        Namemon = "Dangerous Prisoner"
+        NameQuest = "PrisonerQuest"
+        TP = CFrame.new(5310.6,0.3,474.8)
+        num = 2
+
+    elseif lv < 275 then
+        Namemon = "Toga Warrior"
+        NameQuest = "ColosseumQuest"
+        TP = CFrame.new(-1576.1,7.3,-2983.4)
+        num = 1
+
+    elseif lv < 300 then
+        Namemon = "Gladiator"
+        NameQuest = "ColosseumQuest"
+        TP = CFrame.new(-1576.1,7.3,-2983.4)
+        num = 2
+
+    elseif lv < 330 then
+        Namemon = "Military Soldier"
+        NameQuest = "MagmaQuest"
+        TP = CFrame.new(-5316.4,12.3,8515.3)
+        num = 1
+
+    elseif lv < 375 then
+        Namemon = "Military Spy"
+        NameQuest = "MagmaQuest"
+        TP = CFrame.new(-5316.4,12.3,8515.3)
+        num = 2
+
+    elseif lv < 400 then
+        Namemon = "Fishman Warrior"
+        NameQuest = "FishmanQuest"
+        TP = CFrame.new(61122.6,18.9,1569.4)
+        num = 1
+
+    elseif lv < 450 then
+        Namemon = "Fishman Commando"
+        NameQuest = "FishmanQuest"
+        TP = CFrame.new(61122.6,18.9,1569.4)
+        num = 2
+
+    elseif lv < 475 then
+        Namemon = "God's Guard"
+        NameQuest = "SkyExp1Quest"
+        TP = CFrame.new(-4721.9,845.3,-1954.7)
+        num = 1
+
+    elseif lv < 525 then
+        Namemon = "Shanda"
+        NameQuest = "SkyExp1Quest"
+        TP = CFrame.new(-7863.1,5545.5,-379.3)
+        num = 2
+
+    elseif lv < 550 then
+        Namemon = "Royal Squad"
+        NameQuest = "SkyExp2Quest"
+        TP = CFrame.new(-7902.6,5636.1,-1411.2)
+        num = 1
+
+    elseif lv < 625 then
+        Namemon = "Royal Soldier"
+        NameQuest = "SkyExp2Quest"
+        TP = CFrame.new(-7902.6,5636.1,-1411.2)
+        num = 2
+
+    elseif lv < 650 then
+        Namemon = "Galley Pirate"
+        NameQuest = "FountainQuest"
+        TP = CFrame.new(5259.8,38.5,4050.1)
+        num = 1
+
+    elseif lv < 675 then
+        Namemon = "Galley Captain"
+        NameQuest = "FountainQuest"
+        TP = CFrame.new(5259.8,38.5,4050.1)
+        num = 2
+
+    elseif lv < 700 then
+        Namemon = "Galley Captain"
+        NameQuest = "FountainQuest"
+        TP = CFrame.new(5259.8,38.5,4050.1)
+        num = 2
+
+    elseif lv < 725 then
+        Namemon = "Raider"
+        NameQuest = "Area1Quest"
+        TP = CFrame.new(-427.72,72.99,1835.94)
+        num = 1
+
+    elseif lv < 775 then
+        Namemon = "Mercenary"
+        NameQuest = "Area1Quest"
+        TP = CFrame.new(-427.72,72.99,1835.94)
+        num = 2
+
+    elseif lv < 800 then
+        Namemon = "Swan Pirate"
+        NameQuest = "Area2Quest"
+        TP = CFrame.new(635.61,73.09,917.81)
+        num = 1
+
+    elseif lv < 875 then
+        Namemon = "Factory Staff"
+        NameQuest = "Area2Quest"
+        TP = CFrame.new(635.61,73.09,917.81)
+        num = 2
+
+    elseif lv < 900 then
+        Namemon = "Marine Lieutenant"
+        NameQuest = "MarineQuest3"
+        TP = CFrame.new(-2440.99,73.04,-3217.70)
+        num = 1
+
+    elseif lv < 950 then
+        Namemon = "Marine Captain"
+        NameQuest = "MarineQuest3"
+        TP = CFrame.new(-2440.99,73.04,-3217.70)
+        num = 2
+
+    elseif lv < 975 then
+        Namemon = "Zombie"
+        NameQuest = "ZombieQuest"
+        TP = CFrame.new(-5494.34,48.50,-794.59)
+        num = 1
+
+    elseif lv < 1000 then
+        Namemon = "Vampire"
+        NameQuest = "ZombieQuest"
+        TP = CFrame.new(-5494.34,48.50,-794.59)
+        num = 2
+
+    elseif lv < 1050 then
+        Namemon = "Snow Trooper"
+        NameQuest = "SnowMountainQuest"
+        TP = CFrame.new(607.05,401.44,-5370.55)
+        num = 1
+
+    elseif lv < 1100 then
+        Namemon = "Winter Warrior"
+        NameQuest = "SnowMountainQuest"
+        TP = CFrame.new(607.05,401.44,-5370.55)
+        num = 2
+
+    elseif lv < 1125 then
+        Namemon = "Lab Subordinate"
+        NameQuest = "IceSideQuest"
+        TP = CFrame.new(-6061.84,15.92,-4902.03)
+        num = 1
+
+    elseif lv < 1175 then
+        Namemon = "Horned Warrior"
+        NameQuest = "IceSideQuest"
+        TP = CFrame.new(-6061.84,15.92,-4902.03)
+        num = 2
+
+    elseif lv < 1200 then
+        Namemon = "Magma Ninja"
+        NameQuest = "FireSideQuest"
+        TP = CFrame.new(-5429.04,15.97,-5297.96)
+        num = 1
+
+    elseif lv < 1250 then
+        Namemon = "Lava Pirate"
+        NameQuest = "FireSideQuest"
+        TP = CFrame.new(-5429.04,15.97,-5297.96)
+        num = 2
+
+    elseif lv < 1275 then
+        Namemon = "Ship Deckhand"
+        NameQuest = "ShipQuest1"
+        TP = CFrame.new(1040.29,125.08,32911.03)
+        num = 1
+
+    elseif lv < 1300 then
+        Namemon = "Ship Engineer"
+        NameQuest = "ShipQuest1"
+        TP = CFrame.new(1040.29,125.08,32911.03)
+        num = 2
+
+    elseif lv < 1325 then
+        Namemon = "Ship Steward"
+        NameQuest = "ShipQuest2"
+        TP = CFrame.new(971.42,125.08,33245.54)
+        num = 1
+
+    elseif lv < 1350 then
+        Namemon = "Ship Officer"
+        NameQuest = "ShipQuest2"
+        TP = CFrame.new(971.42,125.08,33245.54)
+        num = 2
+
+    elseif lv < 1375 then
+        Namemon = "Arctic Warrior"
+        NameQuest = "FrostQuest"
+        TP = CFrame.new(5668.13,28.20,-6484.60)
+        num = 1
+
+    elseif lv < 1425 then
+        Namemon = "Snow Lurker"
+        NameQuest = "FrostQuest"
+        TP = CFrame.new(5668.13,28.20,-6484.60)
+        num = 2
+
+    elseif lv < 1450 then
+        Namemon = "Sea Soldier"
+        NameQuest = "ForgottenQuest"
+        TP = CFrame.new(-3054.58,236.87,-10147.79)
+        num = 1
+
+    elseif lv < 1500 then
+        Namemon = "Water Fighter"
+        NameQuest = "ForgottenQuest"
+        TP = CFrame.new(-3054.58,236.87,-10147.79)
+        num = 2
+    
+    -- ===== PIRATE PORT =====
+    elseif Lv < 1525 then
+        Namemon = "Pirate Millionaire"
+        NameQuest = "PiratePortQuest"
+        TP = CFrame.new(-289,44,5580)
+        num = 1
+
+    elseif Lv < 1575 then
+        Namemon = "Pistol Billionaire"
+        NameQuest = "PiratePortQuest"
+        TP = CFrame.new(-289,44,5580)
+       num = 2
+
+
+    -- ===== DRAGON CREW =====
+    elseif Lv < 1600 then
+        Namemon = "Dragon Crew Warrior"
+        NameQuest = "DragonCrewQuest"
+        TP = CFrame.new(6735,127,-711)
+        num = 1
+
+    elseif Lv < 1625 then
+        Namemon = "Dragon Crew Archer"
+        NameQuest = "DragonCrewQuest"
+        TP = CFrame.new(6735,127,-711)
+        num = 2
+
+
+    -- ===== AMAZON =====
+    elseif Lv < 1650 then
+        Namemon = "Female Islander"
+        NameQuest = "AmazonQuest"
+        TP = CFrame.new(-5238,52,-1468)
+        num = 1
+
+    elseif Lv < 1700 then
+        Namemon = "Giant Islander"
+        NameQuest = "AmazonQuest"
+        TP = CFrame.new(-5238,52,-1468)
+        num = 2
+
+
+    -- ===== MARINE TREE =====
+    elseif Lv < 1725 then
+        Namemon = "Marine Commodore"
+        NameQuest = "MarineTreeIsland"
+        TP = CFrame.new(2180,29,-6738)
+        num = 1
+
+    elseif Lv < 1750 then
+        Namemon = "Marine Rear Admiral"
+        NameQuest = "MarineTreeIsland"
+        TP = CFrame.new(2180,29,-6738)
+        num = 2
+
+
+    -- ===== FORGOTTEN / WATER =====
+    elseif Lv < 1775 then
+        Namemon = "Water Fighter"
+        NameQuest = "ForgottenQuest"
+        TP = CFrame.new(-3054.58,236.87,-10147.79)
+        num = 1
+
+    elseif Lv < 1800 then
+        Namemon = "Deepsea Warrior"
+        NameQuest = "ForgottenQuest"
+        TP = CFrame.new(-3054.58,236.87,-10147.79)
+        num = 2
+
+
+    -- ===== HAUNTED CASTLE =====
+    elseif Lv < 1825 then
+        Namemon = "Reborn Skeleton"
+        NameQuest = "HauntedQuest1"
+        TP = CFrame.new(-9515,142,5535)
+        num = 1
+
+    elseif Lv < 1850 then
+        Namemon = "Living Zombie"
+        NameQuest = "HauntedQuest1"
+        TP = CFrame.new(-9515,142,5535)
+        num = 2
+
+    elseif Lv < 1875 then
+        Namemon = "Demonic Soul"
+        NameQuest = "HauntedQuest2"
+        TP = CFrame.new(-9515,142,5535)
+        num = 1
+
+    elseif Lv < 1900 then
+        Namemon = "Posessed Mummy"
+        NameQuest = "HauntedQuest2"
+        TP = CFrame.new(-9515,142,5535)
+        num = 2
+
+
+    -- ===== NUT ISLAND =====
+    elseif Lv < 1925 then
+        Namemon = "Peanut Scout"
+        NameQuest = "NutIslandQuest"
+        TP = CFrame.new(-2104,38,-10193)
+        num = 1
+
+    elseif Lv < 1950 then
+        Namemon = "Peanut President"
+        NameQuest = "NutIslandQuest"
+        TP = CFrame.new(-2104,38,-10193)
+        num = 2
+
+
+    -- ===== ICE CREAM ISLAND =====
+    elseif Lv < 1975 then
+        Namemon = "Ice Cream Chef"
+        NameQuest = "IceCreamIslandQuest"
+        TP = CFrame.new(-821,65,-10965)
+        num = 1
+
+    elseif Lv < 2000 then
+        Namemon = "Ice Cream Commander"
+        NameQuest = "IceCreamIslandQuest"
+        TP = CFrame.new(-821,65,-10965)
+        num = 2
+
+
+    -- ===== CAKE ISLAND =====
+    elseif Lv < 2025 then
+        Namemon = "Cookie Crafter"
+        NameQuest = "CakeQuest1"
+        TP = CFrame.new(-2021,36,-12030)
+        num = 1
+
+    elseif Lv < 2050 then
+        Namemon = "Cake Guard"
+        NameQuest = "CakeQuest1"
+        TP = CFrame.new(-2021,36,-12030)
+        num = 2
+
+    elseif Lv < 2075 then
+        Namemon = "Baking Staff"
+        NameQuest = "CakeQuest2"
+        TP = CFrame.new(-2021,36,-12030)
+        num = 1
+
+    elseif Lv < 2100 then
+        Namemon = "Head Baker"
+        NameQuest = "CakeQuest2"
+        TP = CFrame.new(-2021,36,-12030)
+        num = 2
+
+
+    -- ===== CHOCOLATE ISLAND =====
+    elseif Lv < 2125 then
+        Namemon = "Cocoa Warrior"
+        NameQuest = "ChocolateQuest1"
+        TP = CFrame.new(231,24,-12195)
+        num = 1
+
+    elseif Lv < 2150 then
+        Namemon = "Chocolate Bar Battler"
+        NameQuest = "ChocolateQuest1"
+        TP = CFrame.new(231,24,-12195)
+        num = 2
+
+    elseif Lv < 2175 then
+        Namemon = "Sweet Thief"
+        NameQuest = "ChocolateQuest2"
+        TP = CFrame.new(151,24,-12774)
+        num = 1
+
+    elseif Lv < 2200 then
+        Namemon = "Candy Rebel"
+        NameQuest = "ChocolateQuest2"
+        TP = CFrame.new(151,24,-12774)
+        num = 2
+
+
+    -- ===== CANDY ISLAND =====
+    elseif Lv < 2425 then
+        Namemon = "Candy Pirate"
+        NameQuest = "CandyQuest1"
+        TP = CFrame.new(-1149,14,-14445)
+        num = 1
+
+    elseif Lv < 2450 then
+        Namemon = "Snow Demon"
+        NameQuest = "CandyQuest1"
+        TP = CFrame.new(-1149,14,-14445)
+        num = 2
+
+
+    -- ===== TIKI OUTPOST =====
+    elseif Lv < 2475 then
+        Namemon = "Isle Outlaw"
+        NameQuest = "TikiQuest1"
+        TP = CFrame.new(-16548,56,-173)
+        num = 1
+
+    elseif Lv < 2500 then
+        Namemon = "Island Boy"
+        NameQuest = "TikiQuest1"
+        TP = CFrame.new(-16548,56,-173)
+        num = 2
+
+    elseif Lv < 2525 then
+        Namemon = "Sun-kissed Warrior"
+        NameQuest = "TikiQuest2"
+        TP = CFrame.new(-16541,55,1051)
+        num = 1
+
+    elseif Lv < 2550 then
+        Namemon = "Isle Champion"
+        NameQuest = "TikiQuest2"
+        TP = CFrame.new(-16541,55,1051)
+        num = 2
+
+    elseif Lv < 2575 then
+        Namemon = "Serpent Hunter"
+        NameQuest = "TikiQuest3"
+        TP = CFrame.new(-16665,105,1579)
+        num = 1
+
+    elseif Lv < 2600 then
+        Namemon = "Skull Slayer"
+        NameQuest = "TikiQuest3"
+        TP = CFrame.new(-16665,105,1579)
+        num = 2
+
+
+    -- ===== SUBMERGED (END GAME) =====
+    elseif Lv < 2625 then
+        Namemon = "Reef Bandit"
+        NameQuest = "SubmergedQuest1"
+        TP = CFrame.new(10882,-2086,10034)
+        num = 1
+
+    elseif Lv < 2650 then
+        Namemon = "Coral Pirate"
+        NameQuest = "SubmergedQuest1"
+        TP = CFrame.new(10882,-2086,10034)
+        num = 2
+
+    elseif Lv < 2675 then
+        Namemon = "Sea Chanter"
+        NameQuest = "SubmergedQuest2"
+        TP = CFrame.new(10882,-2086,10034)
+        num = 1
+
+    elseif Lv < 2700 then
+        Namemon = "Ocean Prophet"
+        NameQuest = "SubmergedQuest2"
+        TP = CFrame.new(10882,-2086,10034)
+        num = 2
+
+    elseif lv < 2725 then
+        Namemon = "High Disciple"
+        NameQuest = "SubmergedQuest3"
+        TP = CFrame.new(9636,-1992,9609)
+        num = 1
+
+    else
+        Namemon = "Grand Devotee"
+        NameQuest = "SubmergedQuest3"
+        TP = CFrame.new(9636,-1992,9609)
+        num = 2
+    end
+end
+
+-- ================== AUTO FARM MAIN ==================
+task.spawn(function()
+    while _G.AutoFarm do
+        pcall(function()
+            CheckQuest()
+            EquipMelee()
+
+            if not HasQuest() and not WaitingAtSpawn then
+                FlyTo(TP)
+                CommF:InvokeServer("StartQuest", NameQuest, num)
+            end
+
+            local found = false
+            for _,mob in ipairs(Enemies:GetChildren()) do
+                if mob.Name == Namemon and IsAlive(mob) then
+                    found = true
+                    WaitingAtSpawn = false
+                    LockTarget = mob
+                    repeat
+                        StickOnMob(mob)
+                        task.wait()
+                    until not IsAlive(mob)
+                    LockTarget = nil
+                    IsFlying = false
+                    break
+                end
+            end
+
+            if not found and MonsterCF[Namemon] then
+                LockTarget = nil
+                WaitingAtSpawn = true
+                FlyTo(MonsterCF[Namemon])
+            end
+        end)
+        task.wait(0.1)
+    end
+end)
+
+-- ================== NO CLIP ==================
+RunService.Stepped:Connect(function()
+    if not _G.NoClip then return end
+    local char = player.Character
+    if not char then return end
+    for _,v in ipairs(char:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = false
+        end
+    end
+end)
+
